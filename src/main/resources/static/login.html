@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Asilo Cabeza de Algodón</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f7f6;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card-login {
+            border: none;
+            border-top: 5px solid #2e7d32;
+            width: 100%;
+            max-width: 400px;
+        }
+        .btn-verde {
+            background-color: #2e7d32;
+            color: white;
+        }
+        .btn-verde:hover {
+            background-color: #1b5e20;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card card-login shadow p-4 rounded">
+        <h3 class="text-center mb-4 text-success font-weight-bold">🏥 Acceso al Sistema</h3>
+        
+        <div id="mensaje-error" class="alert alert-danger d-none" role="alert"></div>
+
+        <form id="form-login">
+            <div class="mb-3">
+                <label for="correo" class="form-label">Correo Electrónico</label>
+                <input type="email" class="form-control" id="correo" required placeholder="ejemplo@cabeza.com">
+            </div>
+            <div class="mb-3">
+                <label for="contrasena" class="form-label">Contraseña</label>
+                <input type="password" class="form-control" id="contrasena" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-verde w-100 py-2 mt-3">Ingresar</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('form-login').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const correo = document.getElementById('correo').value;
+            const contrasena = document.getElementById('contrasena').value;
+            const divError = document.getElementById('mensaje-error');
+
+            divError.classList.add('d-none');
+
+            try {
+                const respuesta = await fetch('http://localhost:8081/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ correo: correo, contrasena: contrasena })
+                });
+
+                const datos = await respuesta.json();
+
+                if (respuesta.ok) {
+                    // Guardar datos del usuario en la sesión del navegador
+                    localStorage.setItem('usuario', JSON.stringify(datos));
+                    // Redirigir a la vista de pacientes
+                    window.location.href = 'index.html';
+                } else {
+                    divError.textContent = datos.error || 'Credenciales inválidas';
+                    divError.classList.remove('d-none');
+                }
+            } catch (error) {
+                divError.textContent = 'Error al conectar con el servidor';
+                divError.classList.remove('d-none');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+:root {
+    --verde-principal: #2e7d32;
+    --verde-oscuro: #1b5e20;
+    --verde-suave: #e8f5e9;
+}
+
+body {
+    background-color: #f4f7f6 !important;
+}
+
+.header-titulo {
+    color: var(--verde-oscuro);
+    font-weight: 700;
+}
+
+.btn-verde {
+    background-color: var(--verde-principal);
+    color: white;
+    border: none;
+    transition: background 0.3s ease;
+}
+
+.btn-verde:hover {
+    background-color: var(--verde-oscuro);
+    color: white;
+}
+
+.card-custom {
+    border: none;
+    border-top: 5px solid var(--verde-principal);
+    border-radius: 8px;
+}
+
+.tabla-cabecera {
+    background-color: var(--verde-principal) !important;
+    color: white !important;
+}
+
+.tabla-cabecera th {
+    background-color: var(--verde-principal) !important;
+    color: white !important;
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--verde-suave);
+}
+
+.badge-id {
+    background-color: var(--verde-suave);
+    color: var(--verde-oscuro);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
