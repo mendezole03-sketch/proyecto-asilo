@@ -1,13 +1,6 @@
 package com.asilo.notificaciones_service.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
@@ -40,42 +33,17 @@ public class Paciente {
     @Column(name = "psicopatologias")
     private String psicopatologias;
 
-    @Column(name = "nombreFamiliar")
-    private String nombreFamiliar;
+    // Relación con Familiar (CascadeType.ALL guarda automáticamente al familiar al guardar el paciente)
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "id_familiar")
+    private Familiar familiar;
 
-    @Column(name = "telefonoFamiliar")
-    private String telefonoFamiliar;
-
-    @Column(name = "correoFamiliar")
-    private String correoFamiliar;
-
-    @Column(name = "direccionFamiliar")
-    private String direccionFamiliar;
-
+    // Relación con Usuario (Médico)
     @ManyToOne
     @JoinColumn(name = "id_medico")
     private Usuario medico;
 
-    public Paciente() {
-    }
-
-    public Paciente(String nombre, LocalDate fechaNacimiento, LocalDate fechaIngreso, 
-                    String diagnosticoInicial, String motivoReclusion, String medicamentosCajon, 
-                    String psicopatologias, String nombreFamiliar, String telefonoFamiliar, 
-                    String correoFamiliar, String direccionFamiliar, Usuario medico) {
-        this.nombre = nombre;
-        this.fechaNacimiento = fechaNacimiento;
-        this.fechaIngreso = fechaIngreso;
-        this.diagnosticoInicial = diagnosticoInicial;
-        this.motivoReclusion = motivoReclusion;
-        this.medicamentosCajon = medicamentosCajon;
-        this.psicopatologias = psicopatologias;
-        this.nombreFamiliar = nombreFamiliar;
-        this.telefonoFamiliar = telefonoFamiliar;
-        this.correoFamiliar = correoFamiliar;
-        this.direccionFamiliar = direccionFamiliar;
-        this.medico = medico;
-    }
+    public Paciente() {}
 
     // Getters y Setters
     public Integer getIdPaciente() { return idPaciente; }
@@ -102,17 +70,8 @@ public class Paciente {
     public String getPsicopatologias() { return psicopatologias; }
     public void setPsicopatologias(String psicopatologias) { this.psicopatologias = psicopatologias; }
 
-    public String getNombreFamiliar() { return nombreFamiliar; }
-    public void setNombreFamiliar(String nombreFamiliar) { this.nombreFamiliar = nombreFamiliar; }
-
-    public String getTelefonoFamiliar() { return telefonoFamiliar; }
-    public void setTelefonoFamiliar(String telefonoFamiliar) { this.telefonoFamiliar = telefonoFamiliar; }
-
-    public String getCorreoFamiliar() { return correoFamiliar; }
-    public void setCorreoFamiliar(String correoFamiliar) { this.correoFamiliar = correoFamiliar; }
-
-    public String getDireccionFamiliar() { return direccionFamiliar; }
-    public void setDireccionFamiliar(String direccionFamiliar) { this.direccionFamiliar = direccionFamiliar; }
+    public Familiar getFamiliar() { return familiar; }
+    public void setFamiliar(Familiar familiar) { this.familiar = familiar; }
 
     public Usuario getMedico() { return medico; }
     public void setMedico(Usuario medico) { this.medico = medico; }

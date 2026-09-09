@@ -110,86 +110,86 @@
 
     </div>
 
-  <!-- Modal Registrar Paciente -->
-<div class="modal fade" id="modalPaciente" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">🏥 Registrar Nuevo Paciente</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="form-paciente" onsubmit="registrarPaciente(event)">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label fw-bold">Nombre Completo</label>
-              <input type="text" class="form-control" id="paciente-nombre" required>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Fecha Nacimiento</label>
-              <input type="date" class="form-control" id="paciente-nacimiento" required>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Fecha Ingreso</label>
-              <input type="date" class="form-control" id="paciente-ingreso" required>
-            </div>
-
-            <!-- Datos del Familiar -->
-            <!-- Sección Datos del Familiar dentro del Modal Paciente -->
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Familiar Responsable</label>
-              <input type="text" class="form-control" id="paciente-familiar" required placeholder="Ej. María Pérez">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Teléfono Familiar</label>
-              <input type="tel" class="form-control" id="paciente-telefono-familiar" required placeholder="Ej. 5555-1234">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Correo Familiar</label>
-              <input type="email" class="form-control" id="paciente-correo-familiar" required placeholder="ejemplo@correo.com">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Dirección Familiar</label>
-              <input type="text" class="form-control" id="paciente-direccion-familiar" required placeholder="Ej. Zona 10, Ciudad de Guatemala">
-            </div>
-
-            <!-- Datos Médicos -->
-            <div class="col-md-12">
-              <label class="form-label fw-bold">Médico Asignado</label>
-              <select class="form-select" id="paciente-medico" required>
-                <option value="">-- Seleccione un Médico --</option>
-              </select>
-            </div>
-
-            <div class="col-md-12">
-              <label class="form-label fw-bold">Diagnóstico Inicial</label>
-              <textarea class="form-control" id="paciente-diagnostico" rows="2" required></textarea>
-            </div>
-
-            <div class="col-md-12">
-              <label class="form-label fw-bold">Motivo de Reclusión / Ingreso <span class="text-muted fw-normal">(Opcional)</span></label>
-              <textarea class="form-control" id="paciente-motivo" rows="2" placeholder="Ej. Falta de apoyo familiar directo para cuidados 24/7"></textarea>
-            </div>
-
-            <div class="col-md-6">
-              <label class="form-label fw-bold">Psicopatologías</label>
-              <input type="text" class="form-control" id="paciente-psico" placeholder="Ej. Ninguna / Alzheimer">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-bold">Medicamentos de Cajón</label>
-              <input type="text" class="form-control" id="paciente-medicamentos" placeholder="Ej. Paracetamol 500mg">
-            </div>
+    <!-- Modal Registrar Paciente -->
+    <div class="modal fade" id="modalPaciente" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">🏥 Registrar Nuevo Paciente</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-footer mt-4">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-primary">Guardar Paciente</button>
+          <div class="modal-body">
+            <form id="form-paciente" onsubmit="registrarPaciente(event)">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-bold">Nombre Completo</label>
+                  <input type="text" class="form-control" id="paciente-nombre" required>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">Fecha Nacimiento</label>
+                  <input type="date" class="form-control" id="paciente-nacimiento" required>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">Fecha Ingreso</label>
+                  <input type="date" class="form-control" id="paciente-ingreso" required>
+                </div>
+
+                <!-- Sección Datos del Familiar -->
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">Familiar Responsable</label>
+                  <input type="text" class="form-control" id="paciente-familiar" required placeholder="Ej. María Pérez">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">Teléfono Familiar</label>
+                  <input type="tel" class="form-control" id="paciente-telefono-familiar" required placeholder="Ej. 5555-1234">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">Correo Familiar</label>
+                  <input type="email" class="form-control" id="paciente-correo-familiar" required placeholder="ejemplo@correo.com">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">Dirección Familiar</label>
+                  <input type="text" class="form-control" id="paciente-direccion-familiar" required placeholder="Ej. Zona 10, Ciudad de Guatemala">
+                </div>
+
+                <!-- Datos Médicos -->
+                <div class="col-md-12">
+                  <label class="form-label fw-bold">Médico Asignado</label>
+                  <select class="form-select" id="paciente-medico" required>
+                    <option value="">-- Seleccione un Médico --</option>
+                  </select>
+                </div>
+
+                <div class="col-md-12">
+                  <label class="form-label fw-bold">Diagnóstico Inicial</label>
+                  <textarea class="form-control" id="paciente-diagnostico" rows="2" required></textarea>
+                </div>
+
+                <div class="col-md-12">
+                  <label class="form-label fw-bold">Motivo de Reclusión / Ingreso <span class="text-muted fw-normal">(Opcional)</span></label>
+                  <textarea class="form-control" id="paciente-motivo" rows="2" placeholder="Ej. Falta de apoyo familiar directo para cuidados 24/7"></textarea>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-bold">Psicopatologías</label>
+                  <input type="text" class="form-control" id="paciente-psico" placeholder="Ej. Ninguna / Alzheimer">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold">Medicamentos de Cajón</label>
+                  <input type="text" class="form-control" id="paciente-medicamentos" placeholder="Ej. Paracetamol 500mg">
+                </div>
+              </div>
+              <div class="modal-footer mt-4">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Paciente</button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
+    <!-- Scripts necesarios de Bootstrap y lógica JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="app.js"></script>
 </body>

@@ -36,12 +36,15 @@ async function cargarPacientes() {
         pacientes.forEach(paciente => {
             const fila = document.createElement('tr');
             const nombreMedico = paciente.medico && paciente.medico.nombre ? paciente.medico.nombre : 'Sin asignar';
+            
+            // Se actualizó la lectura del nombre del familiar desde el objeto anidado
+            const nombreFamiliar = paciente.familiar && paciente.familiar.nombre ? paciente.familiar.nombre : 'Sin asignar';
 
             fila.innerHTML = `
                 <td><span class="badge bg-secondary">#${paciente.idPaciente}</span></td>
                 <td><strong>${paciente.nombre || 'Sin nombre'}</strong></td>
                 <td>${paciente.diagnosticoInicial || 'N/A'}</td>
-                <td>${paciente.nombreFamiliar || 'Sin asignar'}</td>
+                <td>${nombreFamiliar}</td>
                 <td><span class="badge bg-success">${nombreMedico}</span></td>
                 <td>${paciente.fechaIngreso || 'N/A'}</td>
             `;
@@ -119,14 +122,17 @@ async function registrarPaciente(evento) {
         nombre: document.getElementById('paciente-nombre').value.trim(),
         fechaNacimiento: document.getElementById('paciente-nacimiento').value,
         fechaIngreso: document.getElementById('paciente-ingreso').value,
-        nombreFamiliar: document.getElementById('paciente-familiar').value.trim(),
-        telefonoFamiliar: document.getElementById('paciente-telefono-familiar').value.trim(),
-        correoFamiliar: document.getElementById('paciente-correo-familiar').value.trim(),
-        direccionFamiliar: document.getElementById('paciente-direccion-familiar').value.trim(),
         diagnosticoInicial: document.getElementById('paciente-diagnostico').value.trim(),
         motivoReclusion: document.getElementById('paciente-motivo').value.trim(),
         psicopatologias: document.getElementById('paciente-psico').value.trim(),
         medicamentosCajon: document.getElementById('paciente-medicamentos').value.trim(),
+        // Objeto de Familiar anidado:
+        familiar: {
+            nombre: document.getElementById('paciente-familiar').value.trim(),
+            telefono: document.getElementById('paciente-telefono-familiar').value.trim(),
+            correo: document.getElementById('paciente-correo-familiar').value.trim(),
+            direccion: document.getElementById('paciente-direccion-familiar').value.trim()
+        },
         medico: { idUsuario: parseInt(idMedico) }
     };
 
@@ -138,7 +144,7 @@ async function registrarPaciente(evento) {
         });
 
         if (respuesta.ok) {
-            alert('Paciente registrado exitosamente.');
+            alert('Paciente y Familiar registrados exitosamente.');
             const modalElement = document.getElementById('modalPaciente');
             const modal = bootstrap.Modal.getInstance(modalElement);
             if (modal) modal.hide();
@@ -165,7 +171,4 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarPacientes();
     cargarContadorUsuarios();
     cargarMedicosSelect();
-
-    // Se eliminó la asignación duplicada addEventListener('submit') 
-    // porque el modal HTML ya invoca onsubmit="registrarPaciente(event)"
 });
