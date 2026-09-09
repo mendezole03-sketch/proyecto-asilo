@@ -1,4 +1,3 @@
-// 1. Validar que el usuario haya iniciado sesión
 const usuarioGuardado = localStorage.getItem('usuario');
 
 if (!usuarioGuardado) {
@@ -7,46 +6,40 @@ if (!usuarioGuardado) {
 
 const usuario = JSON.parse(usuarioGuardado);
 
-// 2. Función para cerrar sesión
 function cerrarSesion() {
     localStorage.removeItem('usuario');
     window.location.href = 'login.html';
 }
 
-// 3. Lógica para cargar pacientes y actualizar las tarjetas
-const API_URL = 'http://localhost:8081/api/pacientes';
+const API_URL_PACIENTES = 'http://localhost:8081/api/pacientes';
+const API_URL_USUARIOS = 'http://localhost:8081/api/usuarios';
 
 async function cargarPacientes() {
     try {
-        const respuesta = await fetch(API_URL);
+        const respuesta = await fetch(API_URL_PACIENTES);
+        if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
         const pacientes = await respuesta.json();
-        
         const tbody = document.getElementById('tabla-pacientes');
+
+        if (!tbody) return;
         tbody.innerHTML = '';
 
-        // Actualizar contador en la tarjeta superior
         const tarjetaPacientes = document.getElementById('total-pacientes');
-        if (tarjetaPacientes) {
-            tarjetaPacientes.textContent = pacientes.length;
-        }
+        if (tarjetaPacientes) tarjetaPacientes.textContent = pacientes.length;
 
         if (pacientes.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
-                        No hay pacientes registrados.
-                    </td>
-                </tr>`;
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No hay pacientes registrados.</td></tr>';
             return;
         }
 
         pacientes.forEach(paciente => {
             const fila = document.createElement('tr');
-            const nombreMedico = paciente.medico ? paciente.medico.nombre : 'Sin asignar';
+            const nombreMedico = paciente.medico && paciente.medico.nombre ? paciente.medico.nombre : 'Sin asignar';
 
             fila.innerHTML = `
-                <td><span class="badge-id">#${paciente.idPaciente}</span></td>
-                <td><strong>${paciente.nombre}</strong></td>
+                <td><span class="badge bg-secondary">#${paciente.idPaciente}</span></td>
+                <td><strong>${paciente.nombre || 'Sin nombre'}</strong></td>
                 <td>${paciente.diagnosticoInicial || 'N/A'}</td>
                 <td>${paciente.nombreFamiliar || 'Sin asignar'}</td>
                 <td><span class="badge bg-success">${nombreMedico}</span></td>
@@ -57,20 +50,122 @@ async function cargarPacientes() {
 
     } catch (error) {
         console.error('Error al obtener pacientes:', error);
-        document.getElementById('tabla-pacientes').innerHTML = `
-            <tr>
-                <td colspan="6" class="text-center text-danger py-4">
-                    Error al conectar con el servidor. Verifica que el backend esté ejecutándose.
-                </td>
-            </tr>`;
+        const tbody = document.getElementById('tabla-pacientes');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Error al conectar con el servidor.</td></tr>';
+        }
     }
 }
 
-// Mostrar los datos del usuario logueado al cargar la página
+async function cargarContadorUsuarios() {
+    try {
+        const respuesta = await fetch(API_URL_USUARIOS);
+        if (respuesta.ok) {
+            const usuarios = await respuesta.json();
+            const tarjetaUsuarios = document.getElementById('total-usuarios');
+            if (tarjetaUsuarios) tarjetaUsuarios.textContent = usuarios.length;
+        }
+    } catch (error) {
+        console.warn('Endpoint de usuarios aún no disponible.');
+    }
+}
+
+async function cargarMedicosSelect() {
+    const selectMedico = document.getElementById('paciente-medico');
+    if (!selectMedico) return;
+
+    try {
+        const respuesta = await fetch(API_URL_USUARIOS);
+        if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
+        const usuarios = await respuesta.json();
+        
+        // Filtra cualquier rol que contenga la palabra MEDICO
+        const medicos = usuarios.filter(u => u.rol && u.rol.toUpperCase().includes('MEDICO'));
+
+        selectMedico.innerHTML = '<option value="">-- Seleccione un Médico --</option>';
+
+        medicos.forEach(medico => {
+            const opcion = document.createElement('option');
+            opcion.value = medico.idUsuario;
+            opcion.textContent = medico.nombre;
+            selectMedico.appendChild(opcion);
+        });
+
+        if (medicos.length === 0) {
+            selectMedico.innerHTML = '<option value="">No hay médicos disponibles</option>';
+        }
+
+    } catch (error) {
+        console.error('Error al cargar médicos:', error);
+        selectMedico.innerHTML = '<option value="">Error al cargar lista de médicos</option>';
+    }
+}
+
+async function registrarPaciente(evento) {
+    evento.preventDefault();
+
+    // Deshabilitar botón para evitar dobles peticiones
+    const botonGuardar = document.querySelector('#form-paciente button[type="submit"]');
+    if (botonGuardar) botonGuardar.disabled = true;
+
+    const idMedico = document.getElementById('paciente-medico').value;
+    if (!idMedico) {
+        alert('Por favor, seleccione un médico asignado.');
+        if (botonGuardar) botonGuardar.disabled = false;
+        return;
+    }
+
+    const nuevoPaciente = {
+        nombre: document.getElementById('paciente-nombre').value.trim(),
+        fechaNacimiento: document.getElementById('paciente-nacimiento').value,
+        fechaIngreso: document.getElementById('paciente-ingreso').value,
+        nombreFamiliar: document.getElementById('paciente-familiar').value.trim(),
+        telefonoFamiliar: document.getElementById('paciente-telefono-familiar').value.trim(),
+        correoFamiliar: document.getElementById('paciente-correo-familiar').value.trim(),
+        diagnosticoInicial: document.getElementById('paciente-diagnostico').value.trim(),
+        motivoReclusion: document.getElementById('paciente-motivo').value.trim(),
+        psicopatologias: document.getElementById('paciente-psico').value.trim(),
+        medicamentosCajon: document.getElementById('paciente-medicamentos').value.trim(),
+        medico: { idUsuario: parseInt(idMedico) }
+    };
+
+    try {
+        const respuesta = await fetch(API_URL_PACIENTES, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nuevoPaciente)
+        });
+
+        if (respuesta.ok) {
+            alert('Paciente registrado exitosamente.');
+            const modalElement = document.getElementById('modalPaciente');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) modal.hide();
+
+            document.getElementById('form-paciente').reset();
+            cargarPacientes();
+        } else {
+            alert('Error al registrar paciente. Revisa los datos.');
+        }
+    } catch (error) {
+        console.error('Error al guardar paciente:', error);
+        alert('No se pudo conectar con el servidor.');
+    } finally {
+        if (botonGuardar) botonGuardar.disabled = false;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const infoUsuario = document.getElementById('info-usuario');
-    if (infoUsuario) {
+    if (infoUsuario && usuario) {
         infoUsuario.textContent = `${usuario.nombre} (${usuario.rol})`;
     }
+
     cargarPacientes();
+    cargarContadorUsuarios();
+    cargarMedicosSelect();
+
+    // Se eliminó la asignación duplicada addEventListener('submit') 
+    // porque el modal HTML ya invoca onsubmit="registrarPaciente(event)"
 });

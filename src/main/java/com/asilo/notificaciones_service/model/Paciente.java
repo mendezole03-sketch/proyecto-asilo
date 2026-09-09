@@ -31,6 +31,9 @@ public class Paciente {
     @Column(name = "diagnosticoInicial")
     private String diagnosticoInicial;
 
+    @Column(name = "motivo_reclusion")
+    private String motivoReclusion;
+
     @Column(name = "medicamentosCajon")
     private String medicamentosCajon;
 
@@ -39,6 +42,12 @@ public class Paciente {
 
     @Column(name = "nombreFamiliar")
     private String nombreFamiliar;
+
+    @Column(name = "telefonoFamiliar")
+    private String telefonoFamiliar;
+
+    @Column(name = "correoFamiliar")
+    private String correoFamiliar;
 
     // Relación ManyToOne con la entidad Usuario (id_medico en SQL Server)
     @ManyToOne
@@ -51,15 +60,19 @@ public class Paciente {
 
     // Constructor completo
     public Paciente(String nombre, LocalDate fechaNacimiento, LocalDate fechaIngreso, 
-                    String diagnosticoInicial, String medicamentosCajon, 
-                    String psicopatologias, String nombreFamiliar, Usuario medico) {
+                    String diagnosticoInicial, String motivoReclusion, String medicamentosCajon, 
+                    String psicopatologias, String nombreFamiliar, String telefonoFamiliar, 
+                    String correoFamiliar, Usuario medico) {
         this.nombre = nombre;
         this.fechaNacimiento = fechaNacimiento;
         this.fechaIngreso = fechaIngreso;
         this.diagnosticoInicial = diagnosticoInicial;
+        this.motivoReclusion = motivoReclusion;
         this.medicamentosCajon = medicamentosCajon;
         this.psicopatologias = psicopatologias;
         this.nombreFamiliar = nombreFamiliar;
+        this.telefonoFamiliar = telefonoFamiliar;
+        this.correoFamiliar = correoFamiliar;
         this.medico = medico;
     }
 
@@ -104,6 +117,14 @@ public class Paciente {
         this.diagnosticoInicial = diagnosticoInicial;
     }
 
+    public String getMotivoReclusion() {
+        return motivoReclusion;
+    }
+
+    public void setMotivoReclusion(String motivoReclusion) {
+        this.motivoReclusion = motivoReclusion;
+    }
+
     public String getMedicamentosCajon() {
         return medicamentosCajon;
     }
@@ -126,6 +147,22 @@ public class Paciente {
 
     public void setNombreFamiliar(String nombreFamiliar) {
         this.nombreFamiliar = nombreFamiliar;
+    }
+
+    public String getTelefonoFamiliar() {
+        return telefonoFamiliar;
+    }
+
+    public void setTelefonoFamiliar(String telefonoFamiliar) {
+        this.telefonoFamiliar = telefonoFamiliar;
+    }
+
+    public String getCorreoFamiliar() {
+        return correoFamiliar;
+    }
+
+    public void setCorreoFamiliar(String correoFamiliar) {
+        this.correoFamiliar = correoFamiliar;
     }
 
     public Usuario getMedico() {
