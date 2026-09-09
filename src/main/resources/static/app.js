@@ -2,7 +2,6 @@
 const usuarioGuardado = localStorage.getItem('usuario');
 
 if (!usuarioGuardado) {
-    // Si no hay datos de usuario, lo mandamos al login
     window.location.href = 'login.html';
 }
 
@@ -14,7 +13,7 @@ function cerrarSesion() {
     window.location.href = 'login.html';
 }
 
-// Lógica de carga de pacientes
+// 3. Lógica para cargar pacientes y actualizar las tarjetas
 const API_URL = 'http://localhost:8081/api/pacientes';
 
 async function cargarPacientes() {
@@ -24,6 +23,12 @@ async function cargarPacientes() {
         
         const tbody = document.getElementById('tabla-pacientes');
         tbody.innerHTML = '';
+
+        // Actualizar contador en la tarjeta superior
+        const tarjetaPacientes = document.getElementById('total-pacientes');
+        if (tarjetaPacientes) {
+            tarjetaPacientes.textContent = pacientes.length;
+        }
 
         if (pacientes.length === 0) {
             tbody.innerHTML = `
@@ -37,8 +42,6 @@ async function cargarPacientes() {
 
         pacientes.forEach(paciente => {
             const fila = document.createElement('tr');
-            
-            // Extraer el nombre del médico asignado si existe en el objeto paciente
             const nombreMedico = paciente.medico ? paciente.medico.nombre : 'Sin asignar';
 
             fila.innerHTML = `
@@ -63,7 +66,7 @@ async function cargarPacientes() {
     }
 }
 
-// Mostrar los datos del usuario logueado al cargar el documento
+// Mostrar los datos del usuario logueado al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
     const infoUsuario = document.getElementById('info-usuario');
     if (infoUsuario) {
