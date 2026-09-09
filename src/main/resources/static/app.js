@@ -105,7 +105,6 @@ async function cargarMedicosSelect() {
 async function registrarPaciente(evento) {
     evento.preventDefault();
 
-    // Deshabilitar botón para evitar dobles peticiones
     const botonGuardar = document.querySelector('#form-paciente button[type="submit"]');
     if (botonGuardar) botonGuardar.disabled = true;
 
@@ -123,6 +122,7 @@ async function registrarPaciente(evento) {
         nombreFamiliar: document.getElementById('paciente-familiar').value.trim(),
         telefonoFamiliar: document.getElementById('paciente-telefono-familiar').value.trim(),
         correoFamiliar: document.getElementById('paciente-correo-familiar').value.trim(),
+        direccionFamiliar: document.getElementById('paciente-direccion-familiar').value.trim(),
         diagnosticoInicial: document.getElementById('paciente-diagnostico').value.trim(),
         motivoReclusion: document.getElementById('paciente-motivo').value.trim(),
         psicopatologias: document.getElementById('paciente-psico').value.trim(),

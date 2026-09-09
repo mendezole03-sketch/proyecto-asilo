@@ -49,20 +49,20 @@ public class Paciente {
     @Column(name = "correoFamiliar")
     private String correoFamiliar;
 
-    // Relación ManyToOne con la entidad Usuario (id_medico en SQL Server)
+    @Column(name = "direccionFamiliar")
+    private String direccionFamiliar;
+
     @ManyToOne
     @JoinColumn(name = "id_medico")
     private Usuario medico;
 
-    // Constructor vacío (Requerido por JPA)
     public Paciente() {
     }
 
-    // Constructor completo
     public Paciente(String nombre, LocalDate fechaNacimiento, LocalDate fechaIngreso, 
                     String diagnosticoInicial, String motivoReclusion, String medicamentosCajon, 
                     String psicopatologias, String nombreFamiliar, String telefonoFamiliar, 
-                    String correoFamiliar, Usuario medico) {
+                    String correoFamiliar, String direccionFamiliar, Usuario medico) {
         this.nombre = nombre;
         this.fechaNacimiento = fechaNacimiento;
         this.fechaIngreso = fechaIngreso;
@@ -73,103 +73,47 @@ public class Paciente {
         this.nombreFamiliar = nombreFamiliar;
         this.telefonoFamiliar = telefonoFamiliar;
         this.correoFamiliar = correoFamiliar;
+        this.direccionFamiliar = direccionFamiliar;
         this.medico = medico;
     }
 
     // Getters y Setters
-    public Integer getIdPaciente() {
-        return idPaciente;
-    }
+    public Integer getIdPaciente() { return idPaciente; }
+    public void setIdPaciente(Integer idPaciente) { this.idPaciente = idPaciente; }
 
-    public void setIdPaciente(Integer idPaciente) {
-        this.idPaciente = idPaciente;
-    }
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
 
-    public String getNombre() {
-        return nombre;
-    }
+    public LocalDate getFechaNacimiento() { return fechaNacimiento; }
+    public void setFechaNacimiento(LocalDate fechaNacimiento) { this.fechaNacimiento = fechaNacimiento; }
 
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
+    public LocalDate getFechaIngreso() { return fechaIngreso; }
+    public void setFechaIngreso(LocalDate fechaIngreso) { this.fechaIngreso = fechaIngreso; }
 
-    public LocalDate getFechaNacimiento() {
-        return fechaNacimiento;
-    }
+    public String getDiagnosticoInicial() { return diagnosticoInicial; }
+    public void setDiagnosticoInicial(String diagnosticoInicial) { this.diagnosticoInicial = diagnosticoInicial; }
 
-    public void setFechaNacimiento(LocalDate fechaNacimiento) {
-        this.fechaNacimiento = fechaNacimiento;
-    }
+    public String getMotivoReclusion() { return motivoReclusion; }
+    public void setMotivoReclusion(String motivoReclusion) { this.motivoReclusion = motivoReclusion; }
 
-    public LocalDate getFechaIngreso() {
-        return fechaIngreso;
-    }
+    public String getMedicamentosCajon() { return medicamentosCajon; }
+    public void setMedicamentosCajon(String medicamentosCajon) { this.medicamentosCajon = medicamentosCajon; }
 
-    public void setFechaIngreso(LocalDate fechaIngreso) {
-        this.fechaIngreso = fechaIngreso;
-    }
+    public String getPsicopatologias() { return psicopatologias; }
+    public void setPsicopatologias(String psicopatologias) { this.psicopatologias = psicopatologias; }
 
-    public String getDiagnosticoInicial() {
-        return diagnosticoInicial;
-    }
+    public String getNombreFamiliar() { return nombreFamiliar; }
+    public void setNombreFamiliar(String nombreFamiliar) { this.nombreFamiliar = nombreFamiliar; }
 
-    public void setDiagnosticoInicial(String diagnosticoInicial) {
-        this.diagnosticoInicial = diagnosticoInicial;
-    }
+    public String getTelefonoFamiliar() { return telefonoFamiliar; }
+    public void setTelefonoFamiliar(String telefonoFamiliar) { this.telefonoFamiliar = telefonoFamiliar; }
 
-    public String getMotivoReclusion() {
-        return motivoReclusion;
-    }
+    public String getCorreoFamiliar() { return correoFamiliar; }
+    public void setCorreoFamiliar(String correoFamiliar) { this.correoFamiliar = correoFamiliar; }
 
-    public void setMotivoReclusion(String motivoReclusion) {
-        this.motivoReclusion = motivoReclusion;
-    }
+    public String getDireccionFamiliar() { return direccionFamiliar; }
+    public void setDireccionFamiliar(String direccionFamiliar) { this.direccionFamiliar = direccionFamiliar; }
 
-    public String getMedicamentosCajon() {
-        return medicamentosCajon;
-    }
-
-    public void setMedicamentosCajon(String medicamentosCajon) {
-        this.medicamentosCajon = medicamentosCajon;
-    }
-
-    public String getPsicopatologias() {
-        return psicopatologias;
-    }
-
-    public void setPsicopatologias(String psicopatologias) {
-        this.psicopatologias = psicopatologias;
-    }
-
-    public String getNombreFamiliar() {
-        return nombreFamiliar;
-    }
-
-    public void setNombreFamiliar(String nombreFamiliar) {
-        this.nombreFamiliar = nombreFamiliar;
-    }
-
-    public String getTelefonoFamiliar() {
-        return telefonoFamiliar;
-    }
-
-    public void setTelefonoFamiliar(String telefonoFamiliar) {
-        this.telefonoFamiliar = telefonoFamiliar;
-    }
-
-    public String getCorreoFamiliar() {
-        return correoFamiliar;
-    }
-
-    public void setCorreoFamiliar(String correoFamiliar) {
-        this.correoFamiliar = correoFamiliar;
-    }
-
-    public Usuario getMedico() {
-        return medico;
-    }
-
-    public void setMedico(Usuario medico) {
-        this.medico = medico;
-    }
+    public Usuario getMedico() { return medico; }
+    public void setMedico(Usuario medico) { this.medico = medico; }
 }
