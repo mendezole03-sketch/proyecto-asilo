@@ -39,6 +39,12 @@
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
 
+		<!-- Validaciones para campos obligatorios y fechas -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
 		<!-- Conector oficial para SQL Server -->
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>

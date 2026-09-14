@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Administrador - Asilo Cabeza de Algodón</title>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-light">
@@ -66,29 +69,33 @@
             </div>
         </div>
 
-        <!-- Seccion de Acciones Rápidas -->
+        <!-- Sección de Acciones Rápidas -->
         <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-white shadow-sm rounded">
             <h4 class="header-titulo m-0">Gestión General</h4>
             <div class="d-flex gap-2">
-                <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPaciente" onclick="cargarMedicosSelect()">
+                <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPaciente" onclick="limpiarFormularioPaciente()">
                     + Registrar Paciente
                 </button>
-                <button class="btn btn-success shadow-sm" onclick="alert('Función de crear usuario en desarrollo')">
+                <button class="btn btn-success shadow-sm" onclick="Swal.fire('En desarrollo', 'Función de crear usuario próximamente', 'info')">
                     + Crear Usuario / Médico
                 </button>
                 <button class="btn btn-secondary shadow-sm" onclick="cargarPacientes()">
-                    ↻ Actualizar Tabla
+                    ↻ Actualizar
                 </button>
             </div>
         </div>
 
-        <!-- Tabla de Pacientes -->
+        <!-- Tabla de Pacientes con Buscador Integrado -->
         <div class="card card-custom shadow-sm mb-5">
-            <div class="card-header bg-white py-3">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                 <h5 class="m-0 font-weight-bold text-dark">Listado Reciente de Pacientes</h5>
+                <!-- Buscador sincrono con JS -->
+                <div class="w-50">
+                    <input type="text" id="input-buscar-paciente" class="form-control form-control-sm" placeholder="🔍 Buscar por nombre, diagnóstico, familiar...">
+                </div>
             </div>
             <div class="card-body p-0">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>ID</th>
@@ -97,11 +104,12 @@
                             <th>Familiar Responsable</th>
                             <th>Médico Asignado</th>
                             <th>Fecha Ingreso</th>
+                            <th class="text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-pacientes">
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">Cargando datos...</td>
+                            <td colspan="7" class="text-center py-4 text-muted">Cargando datos...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -110,16 +118,19 @@
 
     </div>
 
-    <!-- Modal Registrar Paciente -->
+    <!-- Modal Registrar / Editar Paciente -->
     <div class="modal fade" id="modalPaciente" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header bg-primary text-white">
-            <h5 class="modal-title">🏥 Registrar Nuevo Paciente</h5>
+            <h5 class="modal-title" id="modalPacienteLabel">🏥 Registrar Nuevo Paciente</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <form id="form-paciente" onsubmit="registrarPaciente(event)">
+            <!-- Formulario gestionado únicamente por JS -->
+            <form id="form-paciente">
+              <input type="hidden" id="paciente-id">
+
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label fw-bold">Nombre Completo</label>
@@ -134,7 +145,7 @@
                   <input type="date" class="form-control" id="paciente-ingreso" required>
                 </div>
 
-                <!-- Sección Datos del Familiar -->
+                <!-- Datos del Familiar -->
                 <div class="col-md-3">
                   <label class="form-label fw-bold">Familiar Responsable</label>
                   <input type="text" class="form-control" id="paciente-familiar" required placeholder="Ej. María Pérez">
@@ -149,7 +160,7 @@
                 </div>
                 <div class="col-md-3">
                   <label class="form-label fw-bold">Dirección Familiar</label>
-                  <input type="text" class="form-control" id="paciente-direccion-familiar" required placeholder="Ej. Zona 10, Ciudad de Guatemala">
+                  <input type="text" class="form-control" id="paciente-direccion-familiar" required placeholder="Ej. Zona 10, Guatemala">
                 </div>
 
                 <!-- Datos Médicos -->
@@ -167,7 +178,7 @@
 
                 <div class="col-md-12">
                   <label class="form-label fw-bold">Motivo de Reclusión / Ingreso <span class="text-muted fw-normal">(Opcional)</span></label>
-                  <textarea class="form-control" id="paciente-motivo" rows="2" placeholder="Ej. Falta de apoyo familiar directo para cuidados 24/7"></textarea>
+                  <textarea class="form-control" id="paciente-motivo" rows="2" placeholder="Ej. Falta de apoyo familiar directo"></textarea>
                 </div>
 
                 <div class="col-md-6">
@@ -181,7 +192,7 @@
               </div>
               <div class="modal-footer mt-4">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="submit" class="btn btn-primary">Guardar Paciente</button>
+                <button type="submit" class="btn btn-primary" id="btn-guardar-paciente">Guardar Paciente</button>
               </div>
             </form>
           </div>
@@ -189,8 +200,9 @@
       </div>
     </div>
 
-    <!-- Scripts necesarios de Bootstrap y lógica JS -->
+    <!-- Scripts de Bootstrap, SweetAlert2 y app.js -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="app.js"></script>
 </body>
 </html>

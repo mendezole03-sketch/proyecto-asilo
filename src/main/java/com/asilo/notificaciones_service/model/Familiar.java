@@ -1,6 +1,7 @@
 package com.asilo.notificaciones_service.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "Familiar")
@@ -11,9 +12,11 @@ public class Familiar {
     @Column(name = "idFamiliar")
     private Integer idFamiliar;
 
+    @NotBlank(message = "El nombre del familiar es obligatorio")
     @Column(name = "nombre")
     private String nombre;
 
+    @NotBlank(message = "El teléfono del familiar es obligatorio")
     @Column(name = "telefono")
     private String telefono;
 

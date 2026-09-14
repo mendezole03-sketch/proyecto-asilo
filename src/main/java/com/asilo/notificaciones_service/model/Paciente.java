@@ -1,6 +1,10 @@
 package com.asilo.notificaciones_service.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 import java.time.LocalDate;
 
 @Entity
@@ -12,9 +16,12 @@ public class Paciente {
     @Column(name = "idPaciente")
     private Integer idPaciente;
 
+    @NotBlank(message = "El nombre del paciente es obligatorio")
     @Column(name = "nombre")
     private String nombre;
 
+    @NotNull(message = "La fecha de nacimiento es obligatoria")
+    @Past(message = "La fecha de nacimiento debe ser una fecha pasada")
     @Column(name = "fechaNacimiento")
     private LocalDate fechaNacimiento;
 
@@ -33,8 +40,9 @@ public class Paciente {
     @Column(name = "psicopatologias")
     private String psicopatologias;
 
-    // Relación con Familiar (CascadeType.ALL guarda automáticamente al familiar al guardar el paciente)
-    @ManyToOne(cascade = CascadeType.ALL)
+    // Relación con Familiar (sin CascadeType.ALL para manejar la asociación manualmente y evitar duplicados)
+    @Valid
+    @ManyToOne
     @JoinColumn(name = "id_familiar")
     private Familiar familiar;
 
