@@ -9,6 +9,15 @@ if (!usuarioGuardado) {
 
 const usuario = JSON.parse(usuarioGuardado);
 
+// Control de acceso por rol según la página actual
+const paginaActual = window.location.pathname.split('/').pop();
+
+if (usuario.rol === 'MEDICO_GENERAL' && paginaActual === 'index.html') {
+    window.location.href = 'medico-general.html';
+} else if (usuario.rol === 'ADMIN' && paginaActual === 'medico-general.html') {
+    window.location.href = 'index.html';
+}
+
 function cerrarSesion() {
     localStorage.removeItem('usuario');
     localStorage.removeItem('token');
@@ -26,7 +35,6 @@ let pacienteEditandoId = null;
    UTILIDADES Y HELPERS
    ========================================================================== */
 
-// Prevención de ataques XSS
 function escaparHTML(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -37,7 +45,6 @@ function escaparHTML(str) {
         .replace(/'/g, '&#039;');
 }
 
-// Cliente HTTP centralizado
 async function fetchData(url, options = {}) {
     const defaultHeaders = { 'Content-Type': 'application/json' };
     
@@ -64,7 +71,6 @@ async function fetchData(url, options = {}) {
     return null;
 }
 
-// Limitador de frecuencia para la búsqueda (Debounce)
 function debounce(fn, delay = 300) {
     let timeoutId;
     return (...args) => {
@@ -73,7 +79,6 @@ function debounce(fn, delay = 300) {
     };
 }
 
-// Estado de carga para los botones
 function setButtonLoading(button, isLoading, originalText = 'Guardar') {
     if (!button) return;
     button.disabled = isLoading;
@@ -86,14 +91,11 @@ function setButtonLoading(button, isLoading, originalText = 'Guardar') {
    NAVEGACIÓN Y LÍMITES DE FECHAS
    ========================================================================== */
 function navegarA(idSeccion) {
-    // Ocultar todas las secciones
     document.querySelectorAll('.seccion-contenido').forEach(sec => sec.classList.add('d-none'));
     
-    // Mostrar la sección requerida
     const seccionDestino = document.getElementById(idSeccion);
     if (seccionDestino) seccionDestino.classList.remove('d-none');
 
-    // Actualizar estado de la barra de navegación (Active Class)
     if (window.event && window.event.currentTarget) {
         document.querySelectorAll('.navbar-nav .nav-link').forEach(link => link.classList.remove('active'));
         window.event.currentTarget.classList.add('active');
@@ -119,7 +121,7 @@ function aplicarLimitesFechas() {
 }
 
 /* ==========================================================================
-   GESTIÓN DE USUARIOS Y PERSONAL
+   GESTIÓN DE USUARIOS Y PERSONAL (ADMINISTRADOR)
    ========================================================================== */
 
 function toggleEspecialidad(rol) {
@@ -197,6 +199,8 @@ async function guardarUsuario(evento) {
 }
 
 async function cargarDatosUsuarios() {
+    if (usuario.rol === 'MEDICO_GENERAL') return; // El médico no gestiona usuarios
+
     const selectMedico = document.getElementById('paciente-medico');
     const tarjetaUsuarios = document.getElementById('total-usuarios');
     const tbodyUsuarios = document.getElementById('tabla-usuarios');
@@ -206,7 +210,6 @@ async function cargarDatosUsuarios() {
 
         if (tarjetaUsuarios) tarjetaUsuarios.textContent = usuarios.length;
 
-        // Renderizado de la tabla de usuarios en la pestaña Usuarios / Personal
         if (tbodyUsuarios) {
             tbodyUsuarios.innerHTML = '';
             if (usuarios.length === 0) {
@@ -228,7 +231,6 @@ async function cargarDatosUsuarios() {
             }
         }
 
-        // Cargar las opciones del selector de Médicos Generales en el Modal Pacientes
         if (selectMedico) {
             const medicosGenerales = usuarios.filter(u => u.rol === 'MEDICO_GENERAL');
             selectMedico.innerHTML = '<option value="">-- Seleccione un Médico General --</option>';
@@ -252,7 +254,7 @@ async function cargarDatosUsuarios() {
 }
 
 /* ==========================================================================
-   GESTIÓN DE PACIENTES
+   GESTIÓN DE PACIENTES (ADAPTADO POR ROL)
    ========================================================================== */
 
 async function cargarPacientes() {
@@ -262,12 +264,33 @@ async function cargarPacientes() {
     });
 
     try {
-        listaPacientesGlobal = await fetchData(API_URL_PACIENTES);
-        
-        const tarjetaPacientes = document.getElementById('total-pacientes');
-        if (tarjetaPacientes) tarjetaPacientes.textContent = listaPacientesGlobal.length;
+        const respuesta = await fetchData(API_URL_PACIENTES);
 
-        renderizarTablaPacientes(listaPacientesGlobal);
+        // FILTRADO SEGÚN EL ROL DE USUARIO
+        if (usuario.rol === 'MEDICO_GENERAL') {
+            listaPacientesGlobal = respuesta.filter(p => {
+                if (!p.medico) return false;
+                
+                // Compara por ID (idUsuario o id) O por Correo Electrónico
+                const coincideId = usuario.idUsuario && (p.medico.idUsuario == usuario.idUsuario || p.medico.id == usuario.idUsuario);
+                const coincideCorreo = usuario.correo && (p.medico.correo === usuario.correo);
+
+                return coincideId || coincideCorreo;
+            });
+            
+            const tarjetaMedico = document.getElementById('total-pacientes-medico');
+            if (tarjetaMedico) tarjetaMedico.textContent = listaPacientesGlobal.length;
+
+            renderizarTablaMedico(listaPacientesGlobal);
+        } else {
+            listaPacientesGlobal = respuesta;
+            
+            const tarjetaPacientes = document.getElementById('total-pacientes');
+            if (tarjetaPacientes) tarjetaPacientes.textContent = listaPacientesGlobal.length;
+
+            renderizarTablaPacientes(listaPacientesGlobal);
+        }
+
     } catch (error) {
         console.error('Error al obtener pacientes:', error);
         tbodies.forEach(tbody => {
@@ -276,6 +299,7 @@ async function cargarPacientes() {
     }
 }
 
+// Tabla para Administrador (Con botones Editar/Borrar)
 function renderizarTablaPacientes(pacientes) {
     const tbodies = document.querySelectorAll('.tabla-pacientes-body');
     if (tbodies.length === 0) return;
@@ -318,10 +342,91 @@ function renderizarTablaPacientes(pacientes) {
     });
 }
 
+// Tabla para Médico General (Solo consulta de Expediente)
+function renderizarTablaMedico(pacientes) {
+    const tbodies = document.querySelectorAll('.tabla-pacientes-body');
+    if (tbodies.length === 0) return;
+
+    tbodies.forEach(tbody => {
+        tbody.innerHTML = '';
+
+        if (!pacientes || pacientes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No tienes pacientes asignados actualmente.</td></tr>';
+            return;
+        }
+
+        const fragmento = document.createDocumentFragment();
+
+        pacientes.forEach(paciente => {
+            const fila = document.createElement('tr');
+            const nombreFamiliar = paciente.familiar?.nombre ? paciente.familiar.nombre : 'Sin asignar';
+
+            fila.innerHTML = `
+                <td><span class="badge bg-secondary">#${escaparHTML(paciente.idPaciente)}</span></td>
+                <td><strong>${escaparHTML(paciente.nombre || 'Sin nombre')}</strong></td>
+                <td>${escaparHTML(paciente.diagnosticoInicial || 'N/A')}</td>
+                <td>${escaparHTML(nombreFamiliar)}</td>
+                <td>${escaparHTML(paciente.fechaIngreso || 'N/A')}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-info text-white" onclick="verExpediente(${paciente.idPaciente})">
+                        👁️ Ver Expediente
+                    </button>
+                </td>
+            `;
+            fragmento.appendChild(fila);
+        });
+
+        tbody.appendChild(fragmento);
+    });
+}
+
+// Modal exclusivo del Médico General para consultar el expediente
+function verExpediente(idPaciente) {
+    const paciente = listaPacientesGlobal.find(p => p.idPaciente === idPaciente);
+    if (!paciente) return;
+
+    const contenedor = document.getElementById('contenido-expediente');
+    if (!contenedor) return;
+
+    contenedor.innerHTML = `
+        <div class="row g-3">
+            <div class="col-md-6">
+                <p><strong>Paciente:</strong> ${escaparHTML(paciente.nombre)}</p>
+                <p><strong>Fecha Nacimiento:</strong> ${escaparHTML(paciente.fechaNacimiento || 'N/A')}</p>
+                <p><strong>Fecha Ingreso:</strong> ${escaparHTML(paciente.fechaIngreso || 'N/A')}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Familiar Responsable:</strong> ${escaparHTML(paciente.familiar?.nombre || 'N/A')}</p>
+                <p><strong>Teléfono Familiar:</strong> ${escaparHTML(paciente.familiar?.telefono || 'N/A')}</p>
+            </div>
+            <hr>
+            <div class="col-12">
+                <p><strong>Diagnóstico Inicial:</strong></p>
+                <div class="p-2 bg-light rounded">${escaparHTML(paciente.diagnosticoInicial || 'Sin diagnóstico registrado')}</div>
+            </div>
+            <div class="col-12">
+                <p><strong>Motivo de Reclusión:</strong></p>
+                <div class="p-2 bg-light rounded">${escaparHTML(paciente.motivoReclusion || 'N/A')}</div>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Psicopatologías:</strong></p>
+                <p class="text-primary">${escaparHTML(paciente.psicopatologias || 'Ninguna')}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Medicamentos de Cajón:</strong></p>
+                <p class="text-success">${escaparHTML(paciente.medicamentosCajon || 'Ninguno')}</p>
+            </div>
+        </div>
+    `;
+
+    const modalElement = document.getElementById('modalExpediente');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    modal.show();
+}
+
 function filtrarPacientes(textoBusqueda) {
     const filtro = textoBusqueda.toLowerCase().trim();
     
-    // Sincronizar todos los inputs de búsqueda
     document.querySelectorAll('.input-buscar-paciente').forEach(input => {
         if (input.value !== textoBusqueda) {
             input.value = textoBusqueda;
@@ -334,7 +439,12 @@ function filtrarPacientes(textoBusqueda) {
         (p.familiar?.nombre && p.familiar.nombre.toLowerCase().includes(filtro)) ||
         (p.medico?.nombre && p.medico.nombre.toLowerCase().includes(filtro))
     );
-    renderizarTablaPacientes(pacientesFiltrados);
+
+    if (usuario.rol === 'MEDICO_GENERAL') {
+        renderizarTablaMedico(pacientesFiltrados);
+    } else {
+        renderizarTablaPacientes(pacientesFiltrados);
+    }
 }
 
 function prepararEdicion(id) {
@@ -360,7 +470,7 @@ function prepararEdicion(id) {
     }
 
     if (paciente.medico) {
-        document.getElementById('paciente-medico').value = paciente.medico.idUsuario || '';
+        document.getElementById('paciente-medico').value = paciente.medico.idUsuario || paciente.medico.id || '';
     }
 
     const tituloModal = document.getElementById('modalPacienteLabel');
@@ -493,19 +603,16 @@ document.addEventListener('DOMContentLoaded', () => {
         infoUsuario.textContent = `${usuario.nombre} (${usuario.rol})`;
     }
 
-    // Inicializar límites y peticiones API iniciales
     aplicarLimitesFechas();
     cargarPacientes();
     cargarDatosUsuarios();
 
-    // Event Listeners de formularios
     const formPaciente = document.getElementById('form-paciente');
     if (formPaciente) formPaciente.addEventListener('submit', guardarPaciente);
 
     const formUsuario = document.getElementById('form-usuario');
     if (formUsuario) formUsuario.addEventListener('submit', guardarUsuario);
 
-    // Event Listeners para reseteo automático al cerrar Modales
     const modalPacienteElement = document.getElementById('modalPaciente');
     if (modalPacienteElement) {
         modalPacienteElement.addEventListener('hidden.bs.modal', limpiarFormularioPaciente);
@@ -516,7 +623,6 @@ document.addEventListener('DOMContentLoaded', () => {
         modalUsuarioElement.addEventListener('hidden.bs.modal', limpiarFormularioUsuario);
     }
 
-    // Buscador interactivo en tiempo real con Debounce (para todos los buscadores)
     const buscadores = document.querySelectorAll('.input-buscar-paciente');
     buscadores.forEach(input => {
         input.addEventListener('input', debounce((e) => filtrarPacientes(e.target.value), 300));
