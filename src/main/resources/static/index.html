@@ -73,11 +73,11 @@
         <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-white shadow-sm rounded">
             <h4 class="header-titulo m-0">Gestión General</h4>
             <div class="d-flex gap-2">
-                <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPaciente" onclick="limpiarFormularioPaciente()">
+                <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPaciente" onclick="limpiarFormularioPaciente(); cargarMedicosGenerales();">
                     + Registrar Paciente
                 </button>
-                <button class="btn btn-success shadow-sm" onclick="Swal.fire('En desarrollo', 'Función de crear usuario próximamente', 'info')">
-                    + Crear Usuario / Médico
+                <button class="btn btn-success shadow-sm" data-bs-toggle="modal" data-bs-target="#modalUsuario" onclick="limpiarFormularioUsuario()">
+                    + Crear Usuario / Personal
                 </button>
                 <button class="btn btn-secondary shadow-sm" onclick="cargarPacientes()">
                     ↻ Actualizar
@@ -165,9 +165,9 @@
 
                 <!-- Datos Médicos -->
                 <div class="col-md-12">
-                  <label class="form-label fw-bold">Médico Asignado</label>
+                  <label class="form-label fw-bold">Médico General Asignado</label>
                   <select class="form-select" id="paciente-medico" required>
-                    <option value="">-- Seleccione un Médico --</option>
+                    <option value="">-- Seleccione un Médico General --</option>
                   </select>
                 </div>
 
@@ -198,6 +198,67 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Modal Registrar / Editar Usuario -->
+    <div class="modal fade" id="modalUsuario" tabindex="-1" aria-labelledby="modalUsuarioLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="modalUsuarioLabel">👨‍⚕️ Crear Usuario / Personal</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="form-usuario">
+                    <div class="modal-body">
+                        <input type="hidden" id="usuario-id">
+
+                        <div class="mb-3">
+                            <label for="usuario-nombre" class="form-label fw-bold">Nombre Completo</label>
+                            <input type="text" class="form-control" id="usuario-nombre" required placeholder="Ej. Dr. Roberto Gómez">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="usuario-correo" class="form-label fw-bold">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="usuario-correo" required placeholder="ejemplo@asilo.com">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="usuario-password" class="form-label fw-bold">Contraseña</label>
+                            <input type="password" class="form-control" id="usuario-password" placeholder="••••••••">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="usuario-rol" class="form-label fw-bold">Rol del Sistema</label>
+                            <select class="form-select" id="usuario-rol" required onchange="toggleEspecialidad(this.value)">
+                                <option value="">-- Seleccione un Rol --</option>
+                                <option value="MEDICO_GENERAL">Médico General</option>
+                                <option value="MEDICO_ESPECIALISTA">Médico Especialista</option>
+                                <option value="ENFERMERO">Enfermero / Personal</option>
+                                <option value="ADMIN">Administrador</option>
+                            </select>
+                        </div>
+
+                        <!-- Especialidad (Solo para Médico Especialista) -->
+                        <div class="mb-3 d-none" id="grupo-especialidad">
+                            <label for="usuario-especialidad" class="form-label fw-bold">Especialidad Médica</label>
+                            <select class="form-select" id="usuario-especialidad">
+                                <option value="">-- Seleccione Especialidad --</option>
+                                <option value="Cardiología">Cardiología</option>
+                                <option value="Neurología">Neurología</option>
+                                <option value="Psiquiatría">Psiquiatría</option>
+                                <option value="Geriatría">Geriatría</option>
+                                <option value="Traumatología">Traumatología</option>
+                                <option value="Oftalmología">Oftalmología</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar Usuario</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts de Bootstrap, SweetAlert2 y app.js -->

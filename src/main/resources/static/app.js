@@ -1,3 +1,4 @@
+// Verification and session control
 const usuarioGuardado = localStorage.getItem('usuario');
 
 if (!usuarioGuardado) {
@@ -11,11 +12,25 @@ function cerrarSesion() {
     window.location.href = 'login.html';
 }
 
+// Endpoints API
 const API_URL_PACIENTES = 'http://localhost:8081/api/pacientes';
 const API_URL_USUARIOS = 'http://localhost:8081/api/usuarios';
 
 let listaPacientesGlobal = [];
 let pacienteEditandoId = null;
+
+/* ==========================================================================
+   NAVEGACIÓN ENTRE SECCIONES (SPA)
+   ========================================================================== */
+function navegarA(idSeccion) {
+    const secciones = document.querySelectorAll('.seccion-contenido');
+    secciones.forEach(sec => sec.classList.add('d-none'));
+
+    const seccionDestino = document.getElementById(idSeccion);
+    if (seccionDestino) {
+        seccionDestino.classList.remove('d-none');
+    }
+}
 
 // Configuración de límites de fechas en inputs
 function aplicarLimitesFechas() {
@@ -37,6 +52,140 @@ function aplicarLimitesFechas() {
         inputNacimiento.setAttribute("max", fechaMaxNacimientoStr);
     }
 }
+
+/* ==========================================================================
+   GESTIÓN DE USUARIOS / PERSONAL
+   ========================================================================== */
+
+// Mostrar u ocultar campo de especialidad dinámicamente según el Rol
+function toggleEspecialidad(rol) {
+    const grupoEspecialidad = document.getElementById('grupo-especialidad');
+    if (!grupoEspecialidad) return;
+
+    if (rol === 'MEDICO_ESPECIALISTA') {
+        grupoEspecialidad.classList.remove('d-none');
+    } else {
+        grupoEspecialidad.classList.add('d-none');
+        document.getElementById('usuario-especialidad').value = '';
+    }
+}
+
+// Limpiar modal de usuario
+function limpiarFormularioUsuario() {
+    const form = document.getElementById('form-usuario');
+    if (form) form.reset();
+    
+    const campoId = document.getElementById('usuario-id');
+    if (campoId) campoId.value = '';
+    
+    toggleEspecialidad('');
+}
+
+// Guardar (POST) nuevo Usuario / Médico
+async function guardarUsuario(evento) {
+    if (evento) evento.preventDefault();
+
+    const botonGuardar = document.querySelector('#form-usuario button[type="submit"]');
+    if (botonGuardar && botonGuardar.disabled) return;
+    if (botonGuardar) botonGuardar.disabled = true;
+
+    const rol = document.getElementById('usuario-rol').value;
+    const especialidad = document.getElementById('usuario-especialidad').value;
+
+    if (rol === 'MEDICO_ESPECIALISTA' && !especialidad) {
+        Swal.fire('Atención', 'Seleccione la especialidad médica.', 'warning');
+        if (botonGuardar) botonGuardar.disabled = false;
+        return;
+    }
+
+    const passwordVal = document.getElementById('usuario-password').value;
+
+    const usuarioPayload = {
+        nombre: document.getElementById('usuario-nombre').value.trim(),
+        correo: document.getElementById('usuario-correo').value.trim(),
+        password: passwordVal,
+        contrasena: passwordVal,
+        rol: rol,
+        especialidad: rol === 'MEDICO_ESPECIALISTA' ? especialidad : null
+    };
+
+    try {
+        const respuesta = await fetch(API_URL_USUARIOS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(usuarioPayload)
+        });
+
+        if (respuesta.ok) {
+            Swal.fire('Éxito', 'Usuario / Personal creado con éxito.', 'success');
+            
+            const modalElement = document.getElementById('modalUsuario');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) modal.hide();
+
+            limpiarFormularioUsuario();
+            cargarContadorUsuarios();
+            cargarMedicosGenerales(); // Actualizar desplegables
+        } else {
+            const mensajeError = await respuesta.text();
+            Swal.fire('Error', mensajeError || 'No se pudo guardar el usuario.', 'error');
+        }
+    } catch (error) {
+        console.error('Error al guardar usuario:', error);
+        Swal.fire('Error de conexión', 'No se pudo conectar con el servidor.', 'error');
+    } finally {
+        if (botonGuardar) botonGuardar.disabled = false;
+    }
+}
+
+// Cargar únicamente Médicos en el select del paciente
+async function cargarMedicosGenerales() {
+    const selectMedico = document.getElementById('paciente-medico');
+    if (!selectMedico) return;
+
+    try {
+        const respuesta = await fetch(API_URL_USUARIOS);
+        if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
+        const usuarios = await respuesta.json();
+        const medicosGenerales = usuarios.filter(u => u.rol === 'MEDICO_GENERAL' || u.rol === 'MEDICO_ESPECIALISTA');
+
+        selectMedico.innerHTML = '<option value="">-- Seleccione un Médico General --</option>';
+
+        medicosGenerales.forEach(medico => {
+            const opcion = document.createElement('option');
+            opcion.value = medico.idUsuario;
+            opcion.textContent = `${medico.nombre} ${medico.especialidad ? `(${medico.especialidad})` : ''}`;
+            selectMedico.appendChild(opcion);
+        });
+
+        if (medicosGenerales.length === 0) {
+            selectMedico.innerHTML = '<option value="">No hay médicos registrados</option>';
+        }
+
+    } catch (error) {
+        console.error('Error al cargar médicos:', error);
+        selectMedico.innerHTML = '<option value="">Error al cargar médicos</option>';
+    }
+}
+
+// Obtener la cantidad total de usuarios registrados
+async function cargarContadorUsuarios() {
+    try {
+        const respuesta = await fetch(API_URL_USUARIOS);
+        if (respuesta.ok) {
+            const usuarios = await respuesta.json();
+            const tarjetaUsuarios = document.getElementById('total-usuarios');
+            if (tarjetaUsuarios) tarjetaUsuarios.textContent = usuarios.length;
+        }
+    } catch (error) {
+        console.warn('Endpoint de usuarios aún no disponible.');
+    }
+}
+
+/* ==========================================================================
+   GESTIÓN DE PACIENTES
+   ========================================================================== */
 
 // Carga principal de pacientes desde el backend
 async function cargarPacientes() {
@@ -108,49 +257,6 @@ function filtrarPacientes(textoBusqueda) {
     renderizarTablaPacientes(pacientesFiltrados);
 }
 
-async function cargarContadorUsuarios() {
-    try {
-        const respuesta = await fetch(API_URL_USUARIOS);
-        if (respuesta.ok) {
-            const usuarios = await respuesta.json();
-            const tarjetaUsuarios = document.getElementById('total-usuarios');
-            if (tarjetaUsuarios) tarjetaUsuarios.textContent = usuarios.length;
-        }
-    } catch (error) {
-        console.warn('Endpoint de usuarios aún no disponible.');
-    }
-}
-
-async function cargarMedicosSelect() {
-    const selectMedico = document.getElementById('paciente-medico');
-    if (!selectMedico) return;
-
-    try {
-        const respuesta = await fetch(API_URL_USUARIOS);
-        if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
-
-        const usuarios = await respuesta.json();
-        const medicos = usuarios.filter(u => u.rol && u.rol.toUpperCase().includes('MEDICO'));
-
-        selectMedico.innerHTML = '<option value="">-- Seleccione un Médico --</option>';
-
-        medicos.forEach(medico => {
-            const opcion = document.createElement('option');
-            opcion.value = medico.idUsuario;
-            opcion.textContent = medico.nombre;
-            selectMedico.appendChild(opcion);
-        });
-
-        if (medicos.length === 0) {
-            selectMedico.innerHTML = '<option value="">No hay médicos disponibles</option>';
-        }
-
-    } catch (error) {
-        console.error('Error al cargar médicos:', error);
-        selectMedico.innerHTML = '<option value="">Error al cargar lista de médicos</option>';
-    }
-}
-
 // Carga los datos del paciente seleccionado en el formulario para editar
 function prepararEdicion(id) {
     const paciente = listaPacientesGlobal.find(p => p.idPaciente === id);
@@ -186,7 +292,7 @@ function prepararEdicion(id) {
     modal.show();
 }
 
-// Resetea el modal al estado de registro
+// Resetea el modal de pacientes
 function limpiarFormularioPaciente() {
     pacienteEditandoId = null;
     const form = document.getElementById('form-paciente');
@@ -222,7 +328,6 @@ async function guardarPaciente(evento) {
     const esEdicion = pacienteEditandoId !== null;
     const pacienteActual = esEdicion ? listaPacientesGlobal.find(p => p.idPaciente === pacienteEditandoId) : null;
 
-    // Construcción limpia del objeto familiar
     const nombreFamiliar = document.getElementById('paciente-familiar').value.trim();
     let familiarObj = null;
 
@@ -234,7 +339,6 @@ async function guardarPaciente(evento) {
             direccion: document.getElementById('paciente-direccion-familiar').value.trim()
         };
 
-        // Solo se adjunta el ID si ya existía para evitar conflictos en POST
         if (pacienteActual && pacienteActual.familiar && pacienteActual.familiar.idFamiliar) {
             familiarObj.idFamiliar = pacienteActual.familiar.idFamiliar;
         }
@@ -319,6 +423,10 @@ async function eliminarPaciente(id) {
     }
 }
 
+/* ==========================================================================
+   INICIALIZACIÓN DE EVENTOS
+   ========================================================================== */
+
 document.addEventListener('DOMContentLoaded', () => {
     const infoUsuario = document.getElementById('info-usuario');
     if (infoUsuario && usuario) {
@@ -328,21 +436,32 @@ document.addEventListener('DOMContentLoaded', () => {
     aplicarLimitesFechas();
     cargarPacientes();
     cargarContadorUsuarios();
-    cargarMedicosSelect();
+    cargarMedicosGenerales();
 
-    // Event listener único para el formulario
+    // Event Listener para el formulario de Paciente
     const formPaciente = document.getElementById('form-paciente');
     if (formPaciente) {
         formPaciente.addEventListener('submit', guardarPaciente);
     }
 
-    // Listener para limpiar datos cuando se cierra el modal
-    const modalElement = document.getElementById('modalPaciente');
-    if (modalElement) {
-        modalElement.addEventListener('hidden.bs.modal', limpiarFormularioPaciente);
+    // Event Listener para el formulario de Usuario
+    const formUsuario = document.getElementById('form-usuario');
+    if (formUsuario) {
+        formUsuario.addEventListener('submit', guardarUsuario);
     }
 
-    // Listener para el buscador en tiempo real
+    // Reset de modales al cerrar
+    const modalPacienteElement = document.getElementById('modalPaciente');
+    if (modalPacienteElement) {
+        modalPacienteElement.addEventListener('hidden.bs.modal', limpiarFormularioPaciente);
+    }
+
+    const modalUsuarioElement = document.getElementById('modalUsuario');
+    if (modalUsuarioElement) {
+        modalUsuarioElement.addEventListener('hidden.bs.modal', limpiarFormularioUsuario);
+    }
+
+    // Buscador en tiempo real
     const inputBuscador = document.getElementById('input-buscar-paciente');
     if (inputBuscador) {
         inputBuscador.addEventListener('input', (e) => filtrarPacientes(e.target.value));
