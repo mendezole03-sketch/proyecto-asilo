@@ -1,4 +1,6 @@
-// Verification and session control
+/* ==========================================================================
+   CONFIGURACIÓN Y CONTROL DE SESIÓN
+   ========================================================================== */
 const usuarioGuardado = localStorage.getItem('usuario');
 
 if (!usuarioGuardado) {
@@ -9,6 +11,7 @@ const usuario = JSON.parse(usuarioGuardado);
 
 function cerrarSesion() {
     localStorage.removeItem('usuario');
+    localStorage.removeItem('token');
     window.location.href = 'login.html';
 }
 
@@ -20,27 +23,89 @@ let listaPacientesGlobal = [];
 let pacienteEditandoId = null;
 
 /* ==========================================================================
-   NAVEGACIÓN ENTRE SECCIONES (SPA)
+   UTILIDADES Y HELPERS
+   ========================================================================== */
+
+// Prevención de ataques XSS
+function escaparHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// Cliente HTTP centralizado
+async function fetchData(url, options = {}) {
+    const defaultHeaders = { 'Content-Type': 'application/json' };
+    
+    const token = localStorage.getItem('token');
+    if (token) defaultHeaders['Authorization'] = `Bearer ${token}`;
+
+    const config = {
+        ...options,
+        headers: { ...defaultHeaders, ...options.headers }
+    };
+
+    const respuesta = await fetch(url, config);
+    if (!respuesta.ok) {
+        const errorText = await respuesta.text();
+        const error = new Error(errorText || `Error HTTP ${respuesta.status}`);
+        error.status = respuesta.status;
+        throw error;
+    }
+    
+    const contentType = respuesta.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+        return await respuesta.json();
+    }
+    return null;
+}
+
+// Limitador de frecuencia para la búsqueda (Debounce)
+function debounce(fn, delay = 300) {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn(...args), delay);
+    };
+}
+
+// Estado de carga para los botones
+function setButtonLoading(button, isLoading, originalText = 'Guardar') {
+    if (!button) return;
+    button.disabled = isLoading;
+    button.innerHTML = isLoading 
+        ? `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Procesando...` 
+        : originalText;
+}
+
+/* ==========================================================================
+   NAVEGACIÓN Y LÍMITES DE FECHAS
    ========================================================================== */
 function navegarA(idSeccion) {
-    const secciones = document.querySelectorAll('.seccion-contenido');
-    secciones.forEach(sec => sec.classList.add('d-none'));
-
+    // Ocultar todas las secciones
+    document.querySelectorAll('.seccion-contenido').forEach(sec => sec.classList.add('d-none'));
+    
+    // Mostrar la sección requerida
     const seccionDestino = document.getElementById(idSeccion);
-    if (seccionDestino) {
-        seccionDestino.classList.remove('d-none');
+    if (seccionDestino) seccionDestino.classList.remove('d-none');
+
+    // Actualizar estado de la barra de navegación (Active Class)
+    if (window.event && window.event.currentTarget) {
+        document.querySelectorAll('.navbar-nav .nav-link').forEach(link => link.classList.remove('active'));
+        window.event.currentTarget.classList.add('active');
     }
 }
 
-// Configuración de límites de fechas en inputs
 function aplicarLimitesFechas() {
     const hoy = new Date();
     const fechaHoyStr = hoy.toISOString().split('T')[0];
 
     const inputIngreso = document.getElementById("paciente-ingreso");
-    if (inputIngreso) {
-        inputIngreso.setAttribute("max", fechaHoyStr);
-    }
+    if (inputIngreso) inputIngreso.setAttribute("max", fechaHoyStr);
 
     const hace60Anios = new Date();
     hace60Anios.setFullYear(hoy.getFullYear() - 60);
@@ -54,10 +119,9 @@ function aplicarLimitesFechas() {
 }
 
 /* ==========================================================================
-   GESTIÓN DE USUARIOS / PERSONAL
+   GESTIÓN DE USUARIOS Y PERSONAL
    ========================================================================== */
 
-// Mostrar u ocultar campo de especialidad dinámicamente según el Rol
 function toggleEspecialidad(rol) {
     const grupoEspecialidad = document.getElementById('grupo-especialidad');
     if (!grupoEspecialidad) return;
@@ -66,11 +130,11 @@ function toggleEspecialidad(rol) {
         grupoEspecialidad.classList.remove('d-none');
     } else {
         grupoEspecialidad.classList.add('d-none');
-        document.getElementById('usuario-especialidad').value = '';
+        const selectEspecialidad = document.getElementById('usuario-especialidad');
+        if (selectEspecialidad) selectEspecialidad.value = '';
     }
 }
 
-// Limpiar modal de usuario
 function limpiarFormularioUsuario() {
     const form = document.getElementById('form-usuario');
     if (form) form.reset();
@@ -81,105 +145,109 @@ function limpiarFormularioUsuario() {
     toggleEspecialidad('');
 }
 
-// Guardar (POST) nuevo Usuario / Médico
 async function guardarUsuario(evento) {
     if (evento) evento.preventDefault();
 
     const botonGuardar = document.querySelector('#form-usuario button[type="submit"]');
-    if (botonGuardar && botonGuardar.disabled) return;
-    if (botonGuardar) botonGuardar.disabled = true;
+    const textoOriginal = botonGuardar ? botonGuardar.innerHTML : 'Guardar Usuario';
+    setButtonLoading(botonGuardar, true);
 
     const rol = document.getElementById('usuario-rol').value;
     const especialidad = document.getElementById('usuario-especialidad').value;
 
     if (rol === 'MEDICO_ESPECIALISTA' && !especialidad) {
         Swal.fire('Atención', 'Seleccione la especialidad médica.', 'warning');
-        if (botonGuardar) botonGuardar.disabled = false;
+        setButtonLoading(botonGuardar, false, textoOriginal);
         return;
     }
-
-    const passwordVal = document.getElementById('usuario-password').value;
 
     const usuarioPayload = {
         nombre: document.getElementById('usuario-nombre').value.trim(),
         correo: document.getElementById('usuario-correo').value.trim(),
-        password: passwordVal,
-        contrasena: passwordVal,
+        password: document.getElementById('usuario-password').value,
         rol: rol,
         especialidad: rol === 'MEDICO_ESPECIALISTA' ? especialidad : null
     };
 
     try {
-        const respuesta = await fetch(API_URL_USUARIOS, {
+        await fetchData(API_URL_USUARIOS, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(usuarioPayload)
         });
 
-        if (respuesta.ok) {
-            Swal.fire('Éxito', 'Usuario / Personal creado con éxito.', 'success');
-            
-            const modalElement = document.getElementById('modalUsuario');
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            if (modal) modal.hide();
+        Swal.fire('Éxito', 'Usuario creado con éxito.', 'success');
+        
+        const modalElement = document.getElementById('modalUsuario');
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) modal.hide();
 
-            limpiarFormularioUsuario();
-            cargarContadorUsuarios();
-            cargarMedicosGenerales(); // Actualizar desplegables
-        } else {
-            const mensajeError = await respuesta.text();
-            Swal.fire('Error', mensajeError || 'No se pudo guardar el usuario.', 'error');
-        }
+        limpiarFormularioUsuario();
+        await cargarDatosUsuarios();
     } catch (error) {
         console.error('Error al guardar usuario:', error);
-        Swal.fire('Error de conexión', 'No se pudo conectar con el servidor.', 'error');
+        const msg = error.message || '';
+        if (msg.includes('UNIQUE KEY') || msg.includes('UQ_Usuarios') || msg.includes('duplicate')) {
+            Swal.fire('Correo registrado', 'El correo electrónico ingresado ya pertenece a otro usuario.', 'warning');
+        } else {
+            Swal.fire('Error', msg || 'No se pudo guardar el usuario.', 'error');
+        }
     } finally {
-        if (botonGuardar) botonGuardar.disabled = false;
+        setButtonLoading(botonGuardar, false, textoOriginal);
     }
 }
 
-// Cargar únicamente Médicos en el select del paciente
-async function cargarMedicosGenerales() {
+async function cargarDatosUsuarios() {
     const selectMedico = document.getElementById('paciente-medico');
-    if (!selectMedico) return;
+    const tarjetaUsuarios = document.getElementById('total-usuarios');
+    const tbodyUsuarios = document.getElementById('tabla-usuarios');
 
     try {
-        const respuesta = await fetch(API_URL_USUARIOS);
-        if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+        const usuarios = await fetchData(API_URL_USUARIOS);
 
-        const usuarios = await respuesta.json();
-        const medicosGenerales = usuarios.filter(u => u.rol === 'MEDICO_GENERAL' || u.rol === 'MEDICO_ESPECIALISTA');
+        if (tarjetaUsuarios) tarjetaUsuarios.textContent = usuarios.length;
 
-        selectMedico.innerHTML = '<option value="">-- Seleccione un Médico General --</option>';
-
-        medicosGenerales.forEach(medico => {
-            const opcion = document.createElement('option');
-            opcion.value = medico.idUsuario;
-            opcion.textContent = `${medico.nombre} ${medico.especialidad ? `(${medico.especialidad})` : ''}`;
-            selectMedico.appendChild(opcion);
-        });
-
-        if (medicosGenerales.length === 0) {
-            selectMedico.innerHTML = '<option value="">No hay médicos registrados</option>';
+        // Renderizado de la tabla de usuarios en la pestaña Usuarios / Personal
+        if (tbodyUsuarios) {
+            tbodyUsuarios.innerHTML = '';
+            if (usuarios.length === 0) {
+                tbodyUsuarios.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No hay personal registrado.</td></tr>';
+            } else {
+                const fragmento = document.createDocumentFragment();
+                usuarios.forEach(user => {
+                    const fila = document.createElement('tr');
+                    fila.innerHTML = `
+                        <td><span class="badge bg-secondary">#${escaparHTML(user.idUsuario)}</span></td>
+                        <td><strong>${escaparHTML(user.nombre)}</strong></td>
+                        <td>${escaparHTML(user.correo)}</td>
+                        <td><span class="badge bg-info text-dark">${escaparHTML(user.rol)}</span></td>
+                        <td>${escaparHTML(user.especialidad || 'N/A')}</td>
+                    `;
+                    fragmento.appendChild(fila);
+                });
+                tbodyUsuarios.appendChild(fragmento);
+            }
         }
 
-    } catch (error) {
-        console.error('Error al cargar médicos:', error);
-        selectMedico.innerHTML = '<option value="">Error al cargar médicos</option>';
-    }
-}
+        // Cargar las opciones del selector de Médicos Generales en el Modal Pacientes
+        if (selectMedico) {
+            const medicosGenerales = usuarios.filter(u => u.rol === 'MEDICO_GENERAL');
+            selectMedico.innerHTML = '<option value="">-- Seleccione un Médico General --</option>';
 
-// Obtener la cantidad total de usuarios registrados
-async function cargarContadorUsuarios() {
-    try {
-        const respuesta = await fetch(API_URL_USUARIOS);
-        if (respuesta.ok) {
-            const usuarios = await respuesta.json();
-            const tarjetaUsuarios = document.getElementById('total-usuarios');
-            if (tarjetaUsuarios) tarjetaUsuarios.textContent = usuarios.length;
+            medicosGenerales.forEach(medico => {
+                const opcion = document.createElement('option');
+                opcion.value = medico.idUsuario;
+                opcion.textContent = medico.nombre;
+                selectMedico.appendChild(opcion);
+            });
+
+            if (medicosGenerales.length === 0) {
+                selectMedico.innerHTML = '<option value="">No hay médicos generales disponibles</option>';
+            }
         }
     } catch (error) {
-        console.warn('Endpoint de usuarios aún no disponible.');
+        console.error('Error al cargar usuarios:', error);
+        if (selectMedico) selectMedico.innerHTML = '<option value="">Error al cargar médicos</option>';
+        if (tbodyUsuarios) tbodyUsuarios.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Error al conectar con el servidor.</td></tr>';
     }
 }
 
@@ -187,77 +255,88 @@ async function cargarContadorUsuarios() {
    GESTIÓN DE PACIENTES
    ========================================================================== */
 
-// Carga principal de pacientes desde el backend
 async function cargarPacientes() {
-    try {
-        const respuesta = await fetch(API_URL_PACIENTES);
-        if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+    const tbodies = document.querySelectorAll('.tabla-pacientes-body');
+    tbodies.forEach(tbody => {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
+    });
 
-        listaPacientesGlobal = await respuesta.json();
+    try {
+        listaPacientesGlobal = await fetchData(API_URL_PACIENTES);
         
         const tarjetaPacientes = document.getElementById('total-pacientes');
         if (tarjetaPacientes) tarjetaPacientes.textContent = listaPacientesGlobal.length;
 
         renderizarTablaPacientes(listaPacientesGlobal);
-
     } catch (error) {
         console.error('Error al obtener pacientes:', error);
-        const tbody = document.getElementById('tabla-pacientes');
-        if (tbody) {
+        tbodies.forEach(tbody => {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error al conectar con el servidor.</td></tr>';
-        }
+        });
     }
 }
 
-// Renderizado de tabla y generación de filas
 function renderizarTablaPacientes(pacientes) {
-    const tbody = document.getElementById('tabla-pacientes');
-    if (!tbody) return;
-    tbody.innerHTML = '';
+    const tbodies = document.querySelectorAll('.tabla-pacientes-body');
+    if (tbodies.length === 0) return;
 
-    if (pacientes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No se encontraron pacientes.</td></tr>';
-        return;
-    }
+    tbodies.forEach(tbody => {
+        tbody.innerHTML = '';
 
-    pacientes.forEach(paciente => {
-        const fila = document.createElement('tr');
-        const nombreMedico = paciente.medico && paciente.medico.nombre ? paciente.medico.nombre : 'Sin asignar';
-        const nombreFamiliar = paciente.familiar && paciente.familiar.nombre ? paciente.familiar.nombre : 'Sin asignar';
+        if (!pacientes || pacientes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No se encontraron pacientes.</td></tr>';
+            return;
+        }
 
-        fila.innerHTML = `
-            <td><span class="badge bg-secondary">#${paciente.idPaciente}</span></td>
-            <td><strong>${paciente.nombre || 'Sin nombre'}</strong></td>
-            <td>${paciente.diagnosticoInicial || 'N/A'}</td>
-            <td>${nombreFamiliar}</td>
-            <td><span class="badge bg-success">${nombreMedico}</span></td>
-            <td>${paciente.fechaIngreso || 'N/A'}</td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary me-1" onclick="prepararEdicion(${paciente.idPaciente})">
-                    ✏️ Editar
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="eliminarPaciente(${paciente.idPaciente})">
-                    🗑️ Borrar
-                </button>
-            </td>
-        `;
-        tbody.appendChild(fila);
+        const fragmento = document.createDocumentFragment();
+
+        pacientes.forEach(paciente => {
+            const fila = document.createElement('tr');
+            const nombreMedico = paciente.medico?.nombre ? paciente.medico.nombre : 'Sin asignar';
+            const nombreFamiliar = paciente.familiar?.nombre ? paciente.familiar.nombre : 'Sin asignar';
+
+            fila.innerHTML = `
+                <td><span class="badge bg-secondary">#${escaparHTML(paciente.idPaciente)}</span></td>
+                <td><strong>${escaparHTML(paciente.nombre || 'Sin nombre')}</strong></td>
+                <td>${escaparHTML(paciente.diagnosticoInicial || 'N/A')}</td>
+                <td>${escaparHTML(nombreFamiliar)}</td>
+                <td><span class="badge bg-success">${escaparHTML(nombreMedico)}</span></td>
+                <td>${escaparHTML(paciente.fechaIngreso || 'N/A')}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="prepararEdicion(${paciente.idPaciente})">
+                        ✏️ Editar
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarPaciente(${paciente.idPaciente})">
+                        🗑️ Borrar
+                    </button>
+                </td>
+            `;
+            fragmento.appendChild(fila);
+        });
+
+        tbody.appendChild(fragmento);
     });
 }
 
-// Filtro en tiempo real para el buscador
 function filtrarPacientes(textoBusqueda) {
     const filtro = textoBusqueda.toLowerCase().trim();
+    
+    // Sincronizar todos los inputs de búsqueda
+    document.querySelectorAll('.input-buscar-paciente').forEach(input => {
+        if (input.value !== textoBusqueda) {
+            input.value = textoBusqueda;
+        }
+    });
+
     const pacientesFiltrados = listaPacientesGlobal.filter(p => 
         (p.nombre && p.nombre.toLowerCase().includes(filtro)) ||
         (p.diagnosticoInicial && p.diagnosticoInicial.toLowerCase().includes(filtro)) ||
-        (p.familiar && p.familiar.nombre && p.familiar.nombre.toLowerCase().includes(filtro)) ||
-        (p.medico && p.medico.nombre && p.medico.nombre.toLowerCase().includes(filtro))
+        (p.familiar?.nombre && p.familiar.nombre.toLowerCase().includes(filtro)) ||
+        (p.medico?.nombre && p.medico.nombre.toLowerCase().includes(filtro))
     );
     renderizarTablaPacientes(pacientesFiltrados);
 }
 
-// Carga los datos del paciente seleccionado en el formulario para editar
 function prepararEdicion(id) {
     const paciente = listaPacientesGlobal.find(p => p.idPaciente === id);
     if (!paciente) return;
@@ -288,11 +367,10 @@ function prepararEdicion(id) {
     if (tituloModal) tituloModal.textContent = '✏️ Editar Paciente';
 
     const modalElement = document.getElementById('modalPaciente');
-    const modal = new bootstrap.Modal(modalElement);
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
     modal.show();
 }
 
-// Resetea el modal de pacientes
 function limpiarFormularioPaciente() {
     pacienteEditandoId = null;
     const form = document.getElementById('form-paciente');
@@ -307,7 +385,6 @@ function limpiarFormularioPaciente() {
     aplicarLimitesFechas();
 }
 
-// Crear (POST) o Actualizar (PUT) Paciente
 async function guardarPaciente(evento) {
     if (evento) {
         evento.preventDefault();
@@ -315,13 +392,13 @@ async function guardarPaciente(evento) {
     }
 
     const botonGuardar = document.querySelector('#form-paciente button[type="submit"]');
-    if (botonGuardar && botonGuardar.disabled) return;
-    if (botonGuardar) botonGuardar.disabled = true;
+    const textoOriginal = botonGuardar ? botonGuardar.innerHTML : 'Guardar Paciente';
+    setButtonLoading(botonGuardar, true);
 
     const idMedico = document.getElementById('paciente-medico').value;
     if (!idMedico) {
         Swal.fire('Atención', 'Por favor, seleccione un médico asignado.', 'warning');
-        if (botonGuardar) botonGuardar.disabled = false;
+        setButtonLoading(botonGuardar, false, textoOriginal);
         return;
     }
 
@@ -339,7 +416,7 @@ async function guardarPaciente(evento) {
             direccion: document.getElementById('paciente-direccion-familiar').value.trim()
         };
 
-        if (pacienteActual && pacienteActual.familiar && pacienteActual.familiar.idFamiliar) {
+        if (pacienteActual?.familiar?.idFamiliar) {
             familiarObj.idFamiliar = pacienteActual.familiar.idFamiliar;
         }
     }
@@ -360,38 +437,27 @@ async function guardarPaciente(evento) {
     const metodo = esEdicion ? 'PUT' : 'POST';
 
     try {
-        const respuesta = await fetch(url, {
+        await fetchData(url, {
             method: metodo,
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(pacientePayload)
         });
 
-        if (respuesta.ok) {
-            Swal.fire(
-                'Éxito', 
-                `Paciente ${esEdicion ? 'actualizado' : 'registrado'} correctamente.`, 
-                'success'
-            );
-            
-            const modalElement = document.getElementById('modalPaciente');
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            if (modal) modal.hide();
+        Swal.fire('Éxito', `Paciente ${esEdicion ? 'actualizado' : 'registrado'} correctamente.`, 'success');
+        
+        const modalElement = document.getElementById('modalPaciente');
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) modal.hide();
 
-            limpiarFormularioPaciente();
-            cargarPacientes();
-        } else {
-            const mensajeError = await respuesta.text();
-            Swal.fire('Error', mensajeError || 'Revisa los datos ingresados e intenta de nuevo.', 'error');
-        }
+        limpiarFormularioPaciente();
+        await cargarPacientes();
     } catch (error) {
         console.error('Error al procesar paciente:', error);
-        Swal.fire('Error de conexión', 'No se pudo conectar con el servidor.', 'error');
+        Swal.fire('Error', error.message || 'Revisa los datos ingresados e intenta de nuevo.', 'error');
     } finally {
-        if (botonGuardar) botonGuardar.disabled = false;
+        setButtonLoading(botonGuardar, false, textoOriginal);
     }
 }
 
-// Eliminar (DELETE) Paciente
 async function eliminarPaciente(id) {
     const confirmacion = await Swal.fire({
         title: '¿Estás seguro?',
@@ -406,19 +472,12 @@ async function eliminarPaciente(id) {
 
     if (confirmacion.isConfirmed) {
         try {
-            const respuesta = await fetch(`${API_URL_PACIENTES}/${id}`, {
-                method: 'DELETE'
-            });
-
-            if (respuesta.ok) {
-                Swal.fire('Eliminado', 'El paciente ha sido eliminado.', 'success');
-                cargarPacientes();
-            } else {
-                Swal.fire('Error', 'No se pudo eliminar el registro.', 'error');
-            }
+            await fetchData(`${API_URL_PACIENTES}/${id}`, { method: 'DELETE' });
+            Swal.fire('Eliminado', 'El paciente ha sido eliminado.', 'success');
+            await cargarPacientes();
         } catch (error) {
             console.error('Error al eliminar paciente:', error);
-            Swal.fire('Error de conexión', 'No se pudo conectar con el servidor.', 'error');
+            Swal.fire('Error', error.message || 'No se pudo eliminar el registro.', 'error');
         }
     }
 }
@@ -428,29 +487,25 @@ async function eliminarPaciente(id) {
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Carga de sesión de usuario
     const infoUsuario = document.getElementById('info-usuario');
     if (infoUsuario && usuario) {
         infoUsuario.textContent = `${usuario.nombre} (${usuario.rol})`;
     }
 
+    // Inicializar límites y peticiones API iniciales
     aplicarLimitesFechas();
     cargarPacientes();
-    cargarContadorUsuarios();
-    cargarMedicosGenerales();
+    cargarDatosUsuarios();
 
-    // Event Listener para el formulario de Paciente
+    // Event Listeners de formularios
     const formPaciente = document.getElementById('form-paciente');
-    if (formPaciente) {
-        formPaciente.addEventListener('submit', guardarPaciente);
-    }
+    if (formPaciente) formPaciente.addEventListener('submit', guardarPaciente);
 
-    // Event Listener para el formulario de Usuario
     const formUsuario = document.getElementById('form-usuario');
-    if (formUsuario) {
-        formUsuario.addEventListener('submit', guardarUsuario);
-    }
+    if (formUsuario) formUsuario.addEventListener('submit', guardarUsuario);
 
-    // Reset de modales al cerrar
+    // Event Listeners para reseteo automático al cerrar Modales
     const modalPacienteElement = document.getElementById('modalPaciente');
     if (modalPacienteElement) {
         modalPacienteElement.addEventListener('hidden.bs.modal', limpiarFormularioPaciente);
@@ -461,9 +516,9 @@ document.addEventListener('DOMContentLoaded', () => {
         modalUsuarioElement.addEventListener('hidden.bs.modal', limpiarFormularioUsuario);
     }
 
-    // Buscador en tiempo real
-    const inputBuscador = document.getElementById('input-buscar-paciente');
-    if (inputBuscador) {
-        inputBuscador.addEventListener('input', (e) => filtrarPacientes(e.target.value));
-    }
+    // Buscador interactivo en tiempo real con Debounce (para todos los buscadores)
+    const buscadores = document.querySelectorAll('.input-buscar-paciente');
+    buscadores.forEach(input => {
+        input.addEventListener('input', debounce((e) => filtrarPacientes(e.target.value), 300));
+    });
 });
