@@ -477,6 +477,7 @@ async function abrirModalRemision(idPaciente, nombrePaciente) {
     }
 }
 
+/*
 async function guardarRemision(evento) {
     if (evento) evento.preventDefault();
 
@@ -539,6 +540,75 @@ async function guardarRemision(evento) {
     } catch (error) {
         console.error('Error al procesar la remisión:', error);
         Swal.fire('Error', error.message || 'No se pudo enviar la solicitud de remisión.', 'error');
+    } finally {
+        setButtonLoading(botonSubmit, false, textoOriginal);
+    }
+}
+*/
+
+async function guardarRemision(evento) {
+    if (evento) evento.preventDefault();
+
+    const idPaciente = document.getElementById('remision-id-paciente')?.value;
+    const selectEspecialidad = document.getElementById('remision-especialidad');
+    const selectEnfermero = document.getElementById('remision-enfermero');
+    const motivoInput = document.getElementById('remision-motivo');
+
+    const especialidadVal = selectEspecialidad ? selectEspecialidad.value : '';
+    const idEnfermeroVal = selectEnfermero ? selectEnfermero.value : '';
+    const motivoVal = motivoInput ? motivoInput.value.trim() : '';
+
+    if (!especialidadVal || !idEnfermeroVal || !motivoVal) {
+        Swal.fire('Atención', 'Por favor complete todos los campos obligatorios.', 'warning');
+        return;
+    }
+
+    const paciente = listaPacientesGlobal.find(p => p.idPaciente == idPaciente);
+
+    if (!paciente) {
+        Swal.fire('Error', 'No se encontró la información del paciente.', 'error');
+        return;
+    }
+
+    // Estructura corregida: Se envía idPaciente en lugar de forzar idSolicitud
+    const solicitudPayload = {
+        idPaciente: parseInt(idPaciente, 10),
+        nombrePaciente: paciente.nombre || 'Paciente sin nombre',
+        nombreFamiliar: paciente.familiar?.nombre || 'Familiar',
+        correoFamiliar: paciente.familiar?.correo || '',
+        medicoEspecialista: especialidadVal,
+        idEnfermero: parseInt(idEnfermeroVal, 10),
+        motivo: motivoVal
+    };
+
+    const botonSubmit = document.querySelector('#formRemision button[type="submit"]');
+    const textoOriginal = botonSubmit ? botonSubmit.innerHTML : 'Guardar y Notificar';
+    setButtonLoading(botonSubmit, true);
+
+    try {
+        await fetchData('http://localhost:8081/api/solicitudes', {
+            method: 'POST',
+            body: JSON.stringify(solicitudPayload)
+        });
+
+        const modalElement = document.getElementById('modalRemision');
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) modal.hide();
+
+        Swal.fire({
+            title: '¡Remisión Registrada!',
+            text: 'La remisión fue procesada con éxito y se guardó en el sistema.',
+            icon: 'success',
+            confirmButtonText: 'Aceptar',
+            confirmButtonColor: '#0d6efd'
+        });
+
+        const formRemision = document.getElementById('formRemision');
+        if (formRemision) formRemision.reset();
+
+    } catch (error) {
+        console.error('Error al procesar la remisión:', error);
+        Swal.fire('Error', error.message || 'No se pudo guardar la solicitud.', 'error');
     } finally {
         setButtonLoading(botonSubmit, false, textoOriginal);
     }

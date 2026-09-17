@@ -2,6 +2,9 @@ package com.asilo.notificaciones_service.controller;
 
 import com.asilo.notificaciones_service.dto.NotificacionDTO;
 import com.asilo.notificaciones_service.dto.SolicitudDTO;
+import com.asilo.notificaciones_service.model.Solicitud;
+import com.asilo.notificaciones_service.repository.SolicitudRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,24 +17,39 @@ import org.springframework.web.client.RestTemplate;
 @RequestMapping("/api/solicitudes")
 @CrossOrigin(origins = "*") // Permite la conexión con app.js
 public class SolicitudController {
-    
+
+    @Autowired
+    private SolicitudRepository solicitudRepository;
+
     @PostMapping
-    public ResponseEntity<?> crearSolicitud(@RequestBody SolicitudDTO solicitud) {
-        // 1. Aquí va tu Lógica para guardar la solicitud de remisión en la BD
+    public ResponseEntity<?> crearSolicitud(@RequestBody SolicitudDTO dto) {
         
-        // 2. Disparar la notificación al microservicio externo (puerto 8082)[cite: 2, 5]
+        // 1. Guardar la solicitud de remisión en la BD SQL Server
+        Solicitud entidad = new Solicitud();
+        entidad.setIdPaciente(dto.getIdPaciente());
+        entidad.setNombrePaciente(dto.getNombrePaciente());
+        entidad.setNombreFamiliar(dto.getNombreFamiliar());
+        entidad.setCorreoFamiliar(dto.getCorreoFamiliar());
+        entidad.setMedicoEspecialista(dto.getMedicoEspecialista());
+        entidad.setIdMedicoEspecialista(dto.getIdMedicoEspecialista()); // Permite NULL
+        entidad.setIdEnfermero(dto.getIdEnfermero());
+        entidad.setMotivo(dto.getMotivo());
+
+        Solicitud guardada = solicitudRepository.save(entidad);
+
+        // 2. Disparar la notificación al microservicio externo (puerto 8082)
         try {
             RestTemplate restTemplate = new RestTemplate();
             String url = "http://localhost:8082/api/v1/notificaciones/solicitud";
 
-            // Convertimos la SolicitudDTO recibida al NotificacionDTO que espera el otro microservicio[cite: 2, 4]
+            // Convertimos los datos al NotificacionDTO que espera el microservicio de correo
             NotificacionDTO datosCorreo = new NotificacionDTO(
-                solicitud.getIdSolicitud(),
-                solicitud.getNombrePaciente(),
-                solicitud.getNombreFamiliar(),
-                solicitud.getCorreoFamiliar(),
-                solicitud.getMedicoEspecialista(),
-                solicitud.getMotivo()
+                guardada.getIdSolicitud(), // Usa el ID generado por la BD
+                guardada.getNombrePaciente(),
+                guardada.getNombreFamiliar(),
+                guardada.getCorreoFamiliar(),
+                guardada.getMedicoEspecialista(),
+                guardada.getMotivo()
             );
 
             // Enviamos los datos vía HTTP POST
@@ -39,10 +57,10 @@ public class SolicitudController {
             System.out.println(">>> Notificación externa procesada: " + respuesta);
             
         } catch (Exception e) {
-            // Se captura cualquier fallo de red para evitar que la app falle si el servicio de correo está apagado
+            // Evita que la app falle si el servicio de correo tiene problemas
             System.err.println(">>> Error al llamar a notificaciones-service: " + e.getMessage());
         }
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(guardada);
     }
 }

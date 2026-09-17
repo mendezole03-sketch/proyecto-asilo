@@ -1,19 +1,46 @@
-package com.asilo.notificaciones_service.dto;
+package com.asilo.notificaciones_service.model;
 
-public class SolicitudDTO {
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "Solicitudes")
+public class Solicitud {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "idSolicitud")
     private Long idSolicitud;
+
+    @Column(name = "idPaciente", nullable = false)
     private Long idPaciente;
+
+    @Column(name = "nombrePaciente", nullable = false)
     private String nombrePaciente;
+
+    @Column(name = "nombreFamiliar")
     private String nombreFamiliar;
+
+    @Column(name = "correoFamiliar")
     private String correoFamiliar;
+
+    @Column(name = "medicoEspecialista", nullable = false)
     private String medicoEspecialista;
+
+    @Column(name = "idMedicoEspecialista", nullable = true)
     private Long idMedicoEspecialista;
+
+    @Column(name = "idEnfermero", nullable = false)
     private Long idEnfermero;
+
+    @Column(name = "motivo")
     private String motivo;
 
-    public SolicitudDTO() {}
+    @Column(name = "fechaSolicitud", insertable = false, updatable = false)
+    private LocalDateTime fechaSolicitud;
 
-    // Getters y Setters
+    public Solicitud() {}
+
     public Long getIdSolicitud() { return idSolicitud; }
     public void setIdSolicitud(Long idSolicitud) { this.idSolicitud = idSolicitud; }
 
@@ -40,4 +67,7 @@ public class SolicitudDTO {
 
     public String getMotivo() { return motivo; }
     public void setMotivo(String motivo) { this.motivo = motivo; }
+
+    public LocalDateTime getFechaSolicitud() { return fechaSolicitud; }
+    public void setFechaSolicitud(LocalDateTime fechaSolicitud) { this.fechaSolicitud = fechaSolicitud; }
 }
