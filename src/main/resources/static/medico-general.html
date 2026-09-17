@@ -12,7 +12,7 @@
 </head>
 <body class="bg-light">
 
-    <!-- Barra de navegación del Médico General -->
+    <!-- Barra de navegación -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary px-4 mb-4 shadow-sm">
         <a class="navbar-brand fw-bold" href="#">🩺 Módulo Médico General - Asilo Cabeza de Algodón</a>
         <div class="collapse navbar-collapse" id="navbarNav">
@@ -33,9 +33,8 @@
 
     <div class="container">
         
-        <!-- ==================== SECCIÓN 1: INICIO MÉDICO ==================== -->
+        <!-- SECCIÓN 1: INICIO MÉDICO -->
         <div id="seccion-inicio-medico" class="seccion-contenido">
-            <!-- Tarjeta de Métrica -->
             <div class="row mb-4">
                 <div class="col-md-6 offset-md-3">
                     <div class="card border-0 shadow-sm bg-primary text-white p-3 rounded-3">
@@ -50,7 +49,6 @@
                 </div>
             </div>
 
-            <!-- Resumen de Pacientes -->
             <div class="card card-custom shadow-sm mb-5">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h5 class="m-0 font-weight-bold text-dark">📋 Mis Pacientes Asignados</h5>
@@ -80,7 +78,7 @@
             </div>
         </div>
 
-        <!-- ==================== SECCIÓN 2: PACIENTES MÉDICO ==================== -->
+        <!-- SECCIÓN 2: PACIENTES MÉDICO -->
         <div id="seccion-pacientes-medico" class="seccion-contenido d-none">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h3 class="m-0">Mis Pacientes a Cargo</h3>
@@ -126,10 +124,60 @@
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body" id="contenido-expediente">
-            <!-- La información detallada se cargará dinámicamente vía JavaScript -->
+            <!-- Cargado vía JS -->
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Crear Remisión Médica (Dínamico desde BD) -->
+    <div class="modal fade" id="modalRemision" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-warning text-dark">
+            <h5 class="modal-title fw-bold" id="modalRemisionLabel">🏥 Crear Remisión a Médico Especialista</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="formRemision">
+              <input type="hidden" id="remision-id-paciente">
+
+              <!-- Paciente -->
+              <div class="mb-3">
+                <label class="form-label fw-bold">Paciente:</label>
+                <input type="text" class="form-control bg-light" id="remision-nombre-paciente" readonly>
+              </div>
+
+              <!-- Médico Especialista (Dinámico de la BD) -->
+              <div class="mb-3">
+                <label for="remision-especialidad" class="form-label fw-bold">Médico Especialista Requerido <span class="text-danger">*</span></label>
+                <select class="form-select" id="remision-especialidad" required>
+                  <option value="" selected disabled>Cargando especialistas...</option>
+                </select>
+              </div>
+
+              <!-- Enfermero Acompañante (Dinámico de la BD) -->
+              <div class="mb-3">
+                <label for="remision-enfermero" class="form-label fw-bold">Enfermero(a) Acompañante Asignado <span class="text-danger">*</span></label>
+                <select class="form-select" id="remision-enfermero" required>
+                  <option value="" selected disabled>Cargando enfermeros...</option>
+                </select>
+              </div>
+
+              <!-- Motivo de Remisión -->
+              <div class="mb-3">
+                <label for="remision-motivo" class="form-label fw-bold">Motivo Clínico de la Remisión <span class="text-danger">*</span></label>
+                <textarea class="form-control" id="remision-motivo" rows="3" placeholder="Describa detalladamente las razones clínicas de la remisión..." required></textarea>
+              </div>
+
+              <div class="modal-footer px-0 pb-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-warning fw-bold">🚀 Guardar y Notificar</button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

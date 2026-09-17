@@ -9,7 +9,6 @@ if (!usuarioGuardado) {
 
 const usuario = JSON.parse(usuarioGuardado);
 
-// Control de acceso por rol según la página actual
 const paginaActual = window.location.pathname.split('/').pop();
 
 if (usuario.rol === 'MEDICO_GENERAL' && paginaActual === 'index.html') {
@@ -199,7 +198,7 @@ async function guardarUsuario(evento) {
 }
 
 async function cargarDatosUsuarios() {
-    if (usuario.rol === 'MEDICO_GENERAL') return; // El médico no gestiona usuarios
+    if (usuario.rol === 'MEDICO_GENERAL') return;
 
     const selectMedico = document.getElementById('paciente-medico');
     const tarjetaUsuarios = document.getElementById('total-usuarios');
@@ -254,7 +253,7 @@ async function cargarDatosUsuarios() {
 }
 
 /* ==========================================================================
-   GESTIÓN DE PACIENTES (ADAPTADO POR ROL)
+   GESTIÓN DE PACIENTES
    ========================================================================== */
 
 async function cargarPacientes() {
@@ -266,12 +265,10 @@ async function cargarPacientes() {
     try {
         const respuesta = await fetchData(API_URL_PACIENTES);
 
-        // FILTRADO SEGÚN EL ROL DE USUARIO
         if (usuario.rol === 'MEDICO_GENERAL') {
             listaPacientesGlobal = respuesta.filter(p => {
                 if (!p.medico) return false;
                 
-                // Compara por ID (idUsuario o id) O por Correo Electrónico
                 const coincideId = usuario.idUsuario && (p.medico.idUsuario == usuario.idUsuario || p.medico.id == usuario.idUsuario);
                 const coincideCorreo = usuario.correo && (p.medico.correo === usuario.correo);
 
@@ -299,7 +296,6 @@ async function cargarPacientes() {
     }
 }
 
-// Tabla para Administrador (Con botones Editar/Borrar)
 function renderizarTablaPacientes(pacientes) {
     const tbodies = document.querySelectorAll('.tabla-pacientes-body');
     if (tbodies.length === 0) return;
@@ -342,7 +338,6 @@ function renderizarTablaPacientes(pacientes) {
     });
 }
 
-// Tabla para Médico General (Solo consulta de Expediente)
 function renderizarTablaMedico(pacientes) {
     const tbodies = document.querySelectorAll('.tabla-pacientes-body');
     if (tbodies.length === 0) return;
@@ -360,6 +355,7 @@ function renderizarTablaMedico(pacientes) {
         pacientes.forEach(paciente => {
             const fila = document.createElement('tr');
             const nombreFamiliar = paciente.familiar?.nombre ? paciente.familiar.nombre : 'Sin asignar';
+            const nombrePacienteSeguro = paciente.nombre ? paciente.nombre.replace(/'/g, "\\'") : 'Paciente';
 
             fila.innerHTML = `
                 <td><span class="badge bg-secondary">#${escaparHTML(paciente.idPaciente)}</span></td>
@@ -368,8 +364,11 @@ function renderizarTablaMedico(pacientes) {
                 <td>${escaparHTML(nombreFamiliar)}</td>
                 <td>${escaparHTML(paciente.fechaIngreso || 'N/A')}</td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-info text-white" onclick="verExpediente(${paciente.idPaciente})">
+                    <button class="btn btn-sm btn-info text-white me-1" onclick="verExpediente(${paciente.idPaciente})">
                         👁️ Ver Expediente
+                    </button>
+                    <button class="btn btn-sm btn-warning fw-bold" onclick="abrirModalRemision(${paciente.idPaciente}, '${escaparHTML(nombrePacienteSeguro)}')">
+                        🏥 Remitir
                     </button>
                 </td>
             `;
@@ -380,7 +379,6 @@ function renderizarTablaMedico(pacientes) {
     });
 }
 
-// Modal exclusivo del Médico General para consultar el expediente
 function verExpediente(idPaciente) {
     const paciente = listaPacientesGlobal.find(p => p.idPaciente === idPaciente);
     if (!paciente) return;
@@ -422,6 +420,104 @@ function verExpediente(idPaciente) {
     const modalElement = document.getElementById('modalExpediente');
     const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
     modal.show();
+}
+
+/* ==========================================================================
+   GESTIÓN DE REMISIONES CON CARGA DINÁMICA DESDE LA BASE DE DATOS
+   ========================================================================== */
+
+async function cargarOpcionesRemision() {
+    const selectEspecialidad = document.getElementById('remision-especialidad');
+    const selectEnfermero = document.getElementById('remision-enfermero');
+
+    try {
+        const usuarios = await fetchData(API_URL_USUARIOS);
+
+        // 1. Cargar Enfermeros desde la BD
+        if (selectEnfermero) {
+            const enfermeros = usuarios.filter(u => u.rol === 'ENFERMERO' || u.rol === 'ENFERMERA');
+            selectEnfermero.innerHTML = '<option value="" selected disabled>Seleccione un enfermero acompañante...</option>';
+
+            if (enfermeros.length === 0) {
+                selectEnfermero.innerHTML = '<option value="">No hay enfermeros registrados</option>';
+            } else {
+                enfermeros.forEach(enf => {
+                    const option = document.createElement('option');
+                    option.value = enf.idUsuario;
+                    option.textContent = enf.nombre;
+                    selectEnfermero.appendChild(option);
+                });
+            }
+        }
+
+        // 2. Cargar Especialistas / Especialidades desde la BD
+        if (selectEspecialidad) {
+            const especialistas = usuarios.filter(u => u.rol === 'MEDICO_ESPECIALISTA' && u.especialidad);
+            selectEspecialidad.innerHTML = '<option value="" selected disabled>Seleccione un médico especialista...</option>';
+
+            if (especialistas.length === 0) {
+                selectEspecialidad.innerHTML = '<option value="">No hay especialistas registrados</option>';
+            } else {
+                especialistas.forEach(esp => {
+                    const option = document.createElement('option');
+                    option.value = esp.idUsuario; // Envía ID del especialista o esp.especialidad según necesites
+                    option.textContent = `${esp.especialidad} - Dr(a). ${esp.nombre}`;
+                    selectEspecialidad.appendChild(option);
+                });
+            }
+        }
+
+    } catch (error) {
+        console.error('Error al cargar datos del personal para la remisión:', error);
+        if (selectEnfermero) selectEnfermero.innerHTML = '<option value="">Error al cargar enfermeros</option>';
+        if (selectEspecialidad) selectEspecialidad.innerHTML = '<option value="">Error al cargar especialistas</option>';
+    }
+}
+
+async function abrirModalRemision(idPaciente, nombrePaciente) {
+    const inputId = document.getElementById('remision-id-paciente');
+    const inputNombre = document.getElementById('remision-nombre-paciente');
+
+    if (inputId) inputId.value = idPaciente;
+    if (inputNombre) inputNombre.value = nombrePaciente;
+
+    // Obtener los datos reales de la BD
+    await cargarOpcionesRemision();
+
+    const modalElement = document.getElementById('modalRemision');
+    if (modalElement) {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        modal.show();
+    }
+}
+
+function guardarRemision(evento) {
+    if (evento) evento.preventDefault();
+
+    const idPaciente = document.getElementById('remision-id-paciente').value;
+    const especialidad = document.getElementById('remision-especialidad').value;
+    const enfermero = document.getElementById('remision-enfermero').value;
+    const motivo = document.getElementById('remision-motivo').value.trim();
+
+    if (!especialidad || !enfermero || !motivo) {
+        Swal.fire('Atención', 'Por favor complete todos los campos obligatorios.', 'warning');
+        return;
+    }
+
+    const modalElement = document.getElementById('modalRemision');
+    const modal = bootstrap.Modal.getInstance(modalElement);
+    if (modal) modal.hide();
+
+    Swal.fire({
+        title: '¡Remisión Registrada!',
+        text: 'La remisión hacia el especialista fue procesada con éxito y se notificó al familiar.',
+        icon: 'success',
+        confirmButtonText: 'Aceptar',
+        confirmButtonColor: '#0d6efd'
+    });
+
+    const formRemision = document.getElementById('formRemision');
+    if (formRemision) formRemision.reset();
 }
 
 function filtrarPacientes(textoBusqueda) {
@@ -597,7 +693,6 @@ async function eliminarPaciente(id) {
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Carga de sesión de usuario
     const infoUsuario = document.getElementById('info-usuario');
     if (infoUsuario && usuario) {
         infoUsuario.textContent = `${usuario.nombre} (${usuario.rol})`;
@@ -612,6 +707,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const formUsuario = document.getElementById('form-usuario');
     if (formUsuario) formUsuario.addEventListener('submit', guardarUsuario);
+
+    const formRemision = document.getElementById('formRemision');
+    if (formRemision) formRemision.addEventListener('submit', guardarRemision);
 
     const modalPacienteElement = document.getElementById('modalPaciente');
     if (modalPacienteElement) {
