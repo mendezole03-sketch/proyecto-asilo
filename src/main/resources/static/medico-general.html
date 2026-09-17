@@ -133,12 +133,12 @@
       </div>
     </div>
 
-    <!-- Modal Crear Remisión Médica (Dínamico desde BD) -->
+    <!-- Modal Crear Remisión Médica (Especialidad fija + Enfermeros) -->
     <div class="modal fade" id="modalRemision" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header bg-warning text-dark">
-            <h5 class="modal-title fw-bold" id="modalRemisionLabel">🏥 Crear Remisión a Médico Especialista</h5>
+            <h5 class="modal-title fw-bold" id="modalRemisionLabel">🏥 Crear Remisión a Especialidad Médica</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
@@ -151,11 +151,17 @@
                 <input type="text" class="form-control bg-light" id="remision-nombre-paciente" readonly>
               </div>
 
-              <!-- Médico Especialista (Dinámico de la BD) -->
+              <!-- Especialidad Requerida -->
               <div class="mb-3">
-                <label for="remision-especialidad" class="form-label fw-bold">Médico Especialista Requerido <span class="text-danger">*</span></label>
+                <label for="remision-especialidad" class="form-label fw-bold">Especialidad Requerida <span class="text-danger">*</span></label>
                 <select class="form-select" id="remision-especialidad" required>
-                  <option value="" selected disabled>Cargando especialistas...</option>
+                  <option value="" selected disabled>Seleccione una especialidad...</option>
+                  <option value="Cardiología">Cardiología</option>
+                  <option value="Neurología">Neurología</option>
+                  <option value="Psiquiatría">Psiquiatría</option>
+                  <option value="Geriatría">Geriatría</option>
+                  <option value="Traumatología">Traumatología</option>
+                  <option value="Oftalmología">Oftalmología</option>
                 </select>
               </div>
 

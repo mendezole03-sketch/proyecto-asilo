@@ -216,9 +216,10 @@ async function cargarDatosUsuarios() {
             } else {
                 const fragmento = document.createDocumentFragment();
                 usuarios.forEach(user => {
+                    const idMostrar = user.idUsuario || user.id || '';
                     const fila = document.createElement('tr');
                     fila.innerHTML = `
-                        <td><span class="badge bg-secondary">#${escaparHTML(user.idUsuario)}</span></td>
+                        <td><span class="badge bg-secondary">#${escaparHTML(idMostrar)}</span></td>
                         <td><strong>${escaparHTML(user.nombre)}</strong></td>
                         <td>${escaparHTML(user.correo)}</td>
                         <td><span class="badge bg-info text-dark">${escaparHTML(user.rol)}</span></td>
@@ -236,7 +237,7 @@ async function cargarDatosUsuarios() {
 
             medicosGenerales.forEach(medico => {
                 const opcion = document.createElement('option');
-                opcion.value = medico.idUsuario;
+                opcion.value = medico.idUsuario || medico.id;
                 opcion.textContent = medico.nombre;
                 selectMedico.appendChild(opcion);
             });
@@ -427,59 +428,45 @@ function verExpediente(idPaciente) {
    ========================================================================== */
 
 async function cargarOpcionesRemision() {
-    const selectEspecialidad = document.getElementById('remision-especialidad');
     const selectEnfermero = document.getElementById('remision-enfermero');
+    if (!selectEnfermero) return;
+
+    selectEnfermero.innerHTML = '<option value="" selected disabled>Cargando enfermeros...</option>';
 
     try {
         const usuarios = await fetchData(API_URL_USUARIOS);
 
-        // 1. Cargar Enfermeros desde la BD
-        if (selectEnfermero) {
-            const enfermeros = usuarios.filter(u => u.rol === 'ENFERMERO' || u.rol === 'ENFERMERA');
-            selectEnfermero.innerHTML = '<option value="" selected disabled>Seleccione un enfermero acompañante...</option>';
+        const enfermeros = usuarios.filter(u => 
+            u.rol && (u.rol.toUpperCase() === 'ENFERMERO' || u.rol.toUpperCase() === 'ENFERMERA')
+        );
 
-            if (enfermeros.length === 0) {
-                selectEnfermero.innerHTML = '<option value="">No hay enfermeros registrados</option>';
-            } else {
-                enfermeros.forEach(enf => {
-                    const option = document.createElement('option');
-                    option.value = enf.idUsuario;
-                    option.textContent = enf.nombre;
-                    selectEnfermero.appendChild(option);
-                });
-            }
+        if (enfermeros.length === 0) {
+            selectEnfermero.innerHTML = '<option value="" disabled>No hay enfermeros registrados</option>';
+            return;
         }
 
-        // 2. Cargar Especialistas desde la BD
-        if (selectEspecialidad) {
-            const especialistas = usuarios.filter(u => u.rol === 'MEDICO_ESPECIALISTA' && u.especialidad);
-            selectEspecialidad.innerHTML = '<option value="" selected disabled>Seleccione un médico especialista...</option>';
-
-            if (especialistas.length === 0) {
-                selectEspecialidad.innerHTML = '<option value="">No hay especialistas registrados</option>';
-            } else {
-                especialistas.forEach(esp => {
-                    const option = document.createElement('option');
-                    option.value = esp.idUsuario;
-                    option.textContent = `${esp.especialidad} - Dr(a). ${esp.nombre}`;
-                    selectEspecialidad.appendChild(option);
-                });
-            }
-        }
+        selectEnfermero.innerHTML = '<option value="" selected disabled>Seleccione un enfermero acompañante...</option>';
+        enfermeros.forEach(enf => {
+            const option = document.createElement('option');
+            option.value = enf.idUsuario || enf.id;
+            option.textContent = enf.nombre;
+            selectEnfermero.appendChild(option);
+        });
 
     } catch (error) {
         console.error('Error al cargar datos del personal para la remisión:', error);
-        if (selectEnfermero) selectEnfermero.innerHTML = '<option value="">Error al cargar enfermeros</option>';
-        if (selectEspecialidad) selectEspecialidad.innerHTML = '<option value="">Error al cargar especialistas</option>';
+        selectEnfermero.innerHTML = '<option value="" disabled>Error al cargar enfermeros</option>';
     }
 }
 
 async function abrirModalRemision(idPaciente, nombrePaciente) {
     const inputId = document.getElementById('remision-id-paciente');
     const inputNombre = document.getElementById('remision-nombre-paciente');
+    const selectEspecialidad = document.getElementById('remision-especialidad');
 
     if (inputId) inputId.value = idPaciente;
     if (inputNombre) inputNombre.value = nombrePaciente;
+    if (selectEspecialidad) selectEspecialidad.value = "";
 
     await cargarOpcionesRemision();
 
@@ -493,12 +480,16 @@ async function abrirModalRemision(idPaciente, nombrePaciente) {
 async function guardarRemision(evento) {
     if (evento) evento.preventDefault();
 
-    const idPaciente = document.getElementById('remision-id-paciente').value;
+    const idPaciente = document.getElementById('remision-id-paciente')?.value;
     const selectEspecialidad = document.getElementById('remision-especialidad');
     const selectEnfermero = document.getElementById('remision-enfermero');
-    const motivo = document.getElementById('remision-motivo').value.trim();
+    const motivoInput = document.getElementById('remision-motivo');
 
-    if (!selectEspecialidad.value || !selectEnfermero.value || !motivo) {
+    const especialidadVal = selectEspecialidad ? selectEspecialidad.value : '';
+    const idEnfermeroVal = selectEnfermero ? selectEnfermero.value : '';
+    const motivoVal = motivoInput ? motivoInput.value.trim() : '';
+
+    if (!especialidadVal || !idEnfermeroVal || !motivoVal) {
         Swal.fire('Atención', 'Por favor complete todos los campos obligatorios.', 'warning');
         return;
     }
@@ -515,8 +506,9 @@ async function guardarRemision(evento) {
         nombrePaciente: paciente.nombre || 'Paciente sin nombre',
         nombreFamiliar: paciente.familiar?.nombre || 'Familiar',
         correoFamiliar: paciente.familiar?.correo || '',
-        medicoEspecialista: selectEspecialidad.options[selectEspecialidad.selectedIndex].text,
-        motivo: motivo
+        medicoEspecialista: especialidadVal,
+        idEnfermero: parseInt(idEnfermeroVal, 10),
+        motivo: motivoVal
     };
 
     const botonSubmit = document.querySelector('#formRemision button[type="submit"]');
@@ -535,7 +527,7 @@ async function guardarRemision(evento) {
 
         Swal.fire({
             title: '¡Remisión Registrada!',
-            text: 'La remisión hacia el especialista fue procesada con éxito y se envió la notificación al familiar.',
+            text: 'La remisión hacia la especialidad fue procesada con éxito y se envió la notificación al familiar.',
             icon: 'success',
             confirmButtonText: 'Aceptar',
             confirmButtonColor: '#0d6efd'
