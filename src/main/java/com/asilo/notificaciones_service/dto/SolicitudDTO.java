@@ -1,41 +1,39 @@
 package com.asilo.notificaciones_service.dto;
 
-import java.time.LocalDateTime;
-
 public class SolicitudDTO {
-
-    private PacienteIdDTO paciente;
-    private UsuarioIdDTO enfermero;
-    private String especialidad;
-    private String fechaHora;
+    private Long idSolicitud;
+    private String nombrePaciente;
+    private String nombreFamiliar;
+    private String correoFamiliar;
+    private String medicoEspecialista;
     private String motivo;
 
-    // Getters y Setters
-    public PacienteIdDTO getPaciente() { return paciente; }
-    public void setPaciente(PacienteIdDTO paciente) { this.paciente = paciente; }
+    public SolicitudDTO() {}
 
-    public UsuarioIdDTO getEnfermero() { return enfermero; }
-    public void setEnfermero(UsuarioIdDTO enfermero) { this.enfermero = enfermero; }
+    public SolicitudDTO(Long idSolicitud, String nombrePaciente, String nombreFamiliar, String correoFamiliar, String medicoEspecialista, String motivo) {
+        this.idSolicitud = idSolicitud;
+        this.nombrePaciente = nombrePaciente;
+        this.nombreFamiliar = nombreFamiliar;
+        this.correoFamiliar = correoFamiliar;
+        this.medicoEspecialista = medicoEspecialista;
+        this.motivo = motivo;
+    }
 
-    public String getEspecialidad() { return especialidad; }
-    public void setEspecialidad(String especialidad) { this.especialidad = especialidad; }
+    public Long getIdSolicitud() { return idSolicitud; }
+    public void setIdSolicitud(Long idSolicitud) { this.idSolicitud = idSolicitud; }
 
-    public String getFechaHora() { return fechaHora; }
-    public void setFechaHora(String fechaHora) { this.fechaHora = fechaHora; }
+    public String getNombrePaciente() { return nombrePaciente; }
+    public void setNombrePaciente(String nombrePaciente) { this.nombrePaciente = nombrePaciente; }
+
+    public String getNombreFamiliar() { return nombreFamiliar; }
+    public void setNombreFamiliar(String nombreFamiliar) { this.nombreFamiliar = nombreFamiliar; }
+
+    public String getCorreoFamiliar() { return correoFamiliar; }
+    public void setCorreoFamiliar(String correoFamiliar) { this.correoFamiliar = correoFamiliar; }
+
+    public String getMedicoEspecialista() { return medicoEspecialista; }
+    public void setMedicoEspecialista(String medicoEspecialista) { this.medicoEspecialista = medicoEspecialista; }
 
     public String getMotivo() { return motivo; }
     public void setMotivo(String motivo) { this.motivo = motivo; }
-
-    // Clases internas para mapear los IDs que envía JS { idPaciente: X } y { idUsuario: X }
-    public static class PacienteIdDTO {
-        private Long idPaciente;
-        public Long getIdPaciente() { return idPaciente; }
-        public void setIdPaciente(Long idPaciente) { this.idPaciente = idPaciente; }
-    }
-
-    public static class UsuarioIdDTO {
-        private Long idUsuario;
-        public Long getIdUsuario() { return idUsuario; }
-        public void setIdUsuario(Long idUsuario) { this.idUsuario = idUsuario; }
-    }
 }

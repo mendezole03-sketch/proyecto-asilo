@@ -423,7 +423,7 @@ function verExpediente(idPaciente) {
 }
 
 /* ==========================================================================
-   GESTIÓN DE REMISIONES CON CARGA DINÁMICA DESDE LA BASE DE DATOS
+   GESTIÓN DE REMISIONES Y NOTIFICACIONES DE CORREO
    ========================================================================== */
 
 async function cargarOpcionesRemision() {
@@ -450,7 +450,7 @@ async function cargarOpcionesRemision() {
             }
         }
 
-        // 2. Cargar Especialistas / Especialidades desde la BD
+        // 2. Cargar Especialistas desde la BD
         if (selectEspecialidad) {
             const especialistas = usuarios.filter(u => u.rol === 'MEDICO_ESPECIALISTA' && u.especialidad);
             selectEspecialidad.innerHTML = '<option value="" selected disabled>Seleccione un médico especialista...</option>';
@@ -460,7 +460,7 @@ async function cargarOpcionesRemision() {
             } else {
                 especialistas.forEach(esp => {
                     const option = document.createElement('option');
-                    option.value = esp.idUsuario; // Envía ID del especialista o esp.especialidad según necesites
+                    option.value = esp.idUsuario;
                     option.textContent = `${esp.especialidad} - Dr(a). ${esp.nombre}`;
                     selectEspecialidad.appendChild(option);
                 });
@@ -481,7 +481,6 @@ async function abrirModalRemision(idPaciente, nombrePaciente) {
     if (inputId) inputId.value = idPaciente;
     if (inputNombre) inputNombre.value = nombrePaciente;
 
-    // Obtener los datos reales de la BD
     await cargarOpcionesRemision();
 
     const modalElement = document.getElementById('modalRemision');
@@ -491,33 +490,66 @@ async function abrirModalRemision(idPaciente, nombrePaciente) {
     }
 }
 
-function guardarRemision(evento) {
+async function guardarRemision(evento) {
     if (evento) evento.preventDefault();
 
     const idPaciente = document.getElementById('remision-id-paciente').value;
-    const especialidad = document.getElementById('remision-especialidad').value;
-    const enfermero = document.getElementById('remision-enfermero').value;
+    const selectEspecialidad = document.getElementById('remision-especialidad');
+    const selectEnfermero = document.getElementById('remision-enfermero');
     const motivo = document.getElementById('remision-motivo').value.trim();
 
-    if (!especialidad || !enfermero || !motivo) {
+    if (!selectEspecialidad.value || !selectEnfermero.value || !motivo) {
         Swal.fire('Atención', 'Por favor complete todos los campos obligatorios.', 'warning');
         return;
     }
 
-    const modalElement = document.getElementById('modalRemision');
-    const modal = bootstrap.Modal.getInstance(modalElement);
-    if (modal) modal.hide();
+    const paciente = listaPacientesGlobal.find(p => p.idPaciente == idPaciente);
 
-    Swal.fire({
-        title: '¡Remisión Registrada!',
-        text: 'La remisión hacia el especialista fue procesada con éxito y se notificó al familiar.',
-        icon: 'success',
-        confirmButtonText: 'Aceptar',
-        confirmButtonColor: '#0d6efd'
-    });
+    if (!paciente) {
+        Swal.fire('Error', 'No se encontró la información del paciente.', 'error');
+        return;
+    }
 
-    const formRemision = document.getElementById('formRemision');
-    if (formRemision) formRemision.reset();
+    const solicitudPayload = {
+        idSolicitud: parseInt(idPaciente, 10),
+        nombrePaciente: paciente.nombre || 'Paciente sin nombre',
+        nombreFamiliar: paciente.familiar?.nombre || 'Familiar',
+        correoFamiliar: paciente.familiar?.correo || '',
+        medicoEspecialista: selectEspecialidad.options[selectEspecialidad.selectedIndex].text,
+        motivo: motivo
+    };
+
+    const botonSubmit = document.querySelector('#formRemision button[type="submit"]');
+    const textoOriginal = botonSubmit ? botonSubmit.innerHTML : 'Guardar y Notificar';
+    setButtonLoading(botonSubmit, true);
+
+    try {
+        await fetchData('http://localhost:8081/api/solicitudes', {
+            method: 'POST',
+            body: JSON.stringify(solicitudPayload)
+        });
+
+        const modalElement = document.getElementById('modalRemision');
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) modal.hide();
+
+        Swal.fire({
+            title: '¡Remisión Registrada!',
+            text: 'La remisión hacia el especialista fue procesada con éxito y se envió la notificación al familiar.',
+            icon: 'success',
+            confirmButtonText: 'Aceptar',
+            confirmButtonColor: '#0d6efd'
+        });
+
+        const formRemision = document.getElementById('formRemision');
+        if (formRemision) formRemision.reset();
+
+    } catch (error) {
+        console.error('Error al procesar la remisión:', error);
+        Swal.fire('Error', error.message || 'No se pudo enviar la solicitud de remisión.', 'error');
+    } finally {
+        setButtonLoading(botonSubmit, false, textoOriginal);
+    }
 }
 
 function filtrarPacientes(textoBusqueda) {

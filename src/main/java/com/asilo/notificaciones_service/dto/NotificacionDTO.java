@@ -1,9 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.asilo.notificaciones_service.dto;
-
 
 public class NotificacionDTO {
     private Long idSolicitud;
@@ -13,6 +8,22 @@ public class NotificacionDTO {
     private String medicoEspecialista;
     private String motivo;
 
+    // Constructor vacío (Obligatorio para que Spring deserialice el JSON)
+    public NotificacionDTO() {
+    }
+
+    // Constructor con todos los campos (Para crear el objeto rápido antes de enviar)
+    public NotificacionDTO(Long idSolicitud, String nombrePaciente, String nombreFamiliar, 
+                           String correoFamiliar, String medicoEspecialista, String motivo) {
+        this.idSolicitud = idSolicitud;
+        this.nombrePaciente = nombrePaciente;
+        this.nombreFamiliar = nombreFamiliar;
+        this.correoFamiliar = correoFamiliar;
+        this.medicoEspecialista = medicoEspecialista;
+        this.motivo = motivo;
+    }
+
+    // Getters y Setters
     public Long getIdSolicitud() { return idSolicitud; }
     public void setIdSolicitud(Long idSolicitud) { this.idSolicitud = idSolicitud; }
 
