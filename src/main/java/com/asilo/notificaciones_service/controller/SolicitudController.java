@@ -6,12 +6,10 @@ import com.asilo.notificaciones_service.model.Solicitud;
 import com.asilo.notificaciones_service.repository.SolicitudRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/solicitudes")
@@ -20,6 +18,12 @@ public class SolicitudController {
 
     @Autowired
     private SolicitudRepository solicitudRepository;
+
+    // 📌 KO'ÁPE EMOINGE KO MÉTODO GET TAPNO API OME'Ẽ LA LISTA SOLICITUDES REHEGUA
+    @GetMapping
+    public List<Solicitud> obtenerTodasLasSolicitudes() {
+        return solicitudRepository.findAll();
+    }
 
     @PostMapping
     public ResponseEntity<?> crearSolicitud(@RequestBody SolicitudDTO dto) {

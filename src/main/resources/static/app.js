@@ -26,6 +26,7 @@ function cerrarSesion() {
 // Endpoints API
 const API_URL_PACIENTES = 'http://localhost:8081/api/pacientes';
 const API_URL_USUARIOS = 'http://localhost:8081/api/usuarios';
+const API_URL_SOLICITUDES = 'http://localhost:8081/api/solicitudes';
 
 let listaPacientesGlobal = [];
 let pacienteEditandoId = null;
@@ -265,6 +266,22 @@ async function cargarPacientes() {
 
     try {
         const respuesta = await fetchData(API_URL_PACIENTES);
+        
+        // Obtener la lista de solicitudes activas desde dbo.Solicitudes
+        let idsPacientesRemitidos = new Set();
+        try {
+            const solicitudes = await fetchData(API_URL_SOLICITUDES);
+            if (Array.isArray(solicitudes)) {
+                solicitudes.forEach(sol => {
+                    const idPac = sol.idPaciente || sol.pacienteId || (sol.paciente ? (sol.paciente.idPaciente || sol.paciente.id) : null);
+                    if (idPac !== null && idPac !== undefined) {
+                        idsPacientesRemitidos.add(String(idPac));
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('No se pudieron verificar las solicitudes activas desde dbo.Solicitudes:', e);
+        }
 
         if (usuario.rol === 'MEDICO_GENERAL') {
             listaPacientesGlobal = respuesta.filter(p => {
@@ -274,6 +291,10 @@ async function cargarPacientes() {
                 const coincideCorreo = usuario.correo && (p.medico.correo === usuario.correo);
 
                 return coincideId || coincideCorreo;
+            }).map(p => {
+                const idActual = String(p.idPaciente || p.id);
+                p.remitido = idsPacientesRemitidos.has(idActual);
+                return p;
             });
             
             const tarjetaMedico = document.getElementById('total-pacientes-medico');
@@ -315,19 +336,20 @@ function renderizarTablaPacientes(pacientes) {
             const fila = document.createElement('tr');
             const nombreMedico = paciente.medico?.nombre ? paciente.medico.nombre : 'Sin asignar';
             const nombreFamiliar = paciente.familiar?.nombre ? paciente.familiar.nombre : 'Sin asignar';
+            const idMostrar = paciente.idPaciente || paciente.id;
 
             fila.innerHTML = `
-                <td><span class="badge bg-secondary">#${escaparHTML(paciente.idPaciente)}</span></td>
+                <td><span class="badge bg-secondary">#${escaparHTML(idMostrar)}</span></td>
                 <td><strong>${escaparHTML(paciente.nombre || 'Sin nombre')}</strong></td>
                 <td>${escaparHTML(paciente.diagnosticoInicial || 'N/A')}</td>
                 <td>${escaparHTML(nombreFamiliar)}</td>
                 <td><span class="badge bg-success">${escaparHTML(nombreMedico)}</span></td>
                 <td>${escaparHTML(paciente.fechaIngreso || 'N/A')}</td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="prepararEdicion(${paciente.idPaciente})">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="prepararEdicion(${idMostrar})">
                         ✏️ Editar
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarPaciente(${paciente.idPaciente})">
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarPaciente(${idMostrar})">
                         🗑️ Borrar
                     </button>
                 </td>
@@ -355,22 +377,29 @@ function renderizarTablaMedico(pacientes) {
 
         pacientes.forEach(paciente => {
             const fila = document.createElement('tr');
+            const idMostrar = paciente.idPaciente || paciente.id;
             const nombreFamiliar = paciente.familiar?.nombre ? paciente.familiar.nombre : 'Sin asignar';
             const nombrePacienteSeguro = paciente.nombre ? paciente.nombre.replace(/'/g, "\\'") : 'Paciente';
 
             fila.innerHTML = `
-                <td><span class="badge bg-secondary">#${escaparHTML(paciente.idPaciente)}</span></td>
+                <td><span class="badge bg-secondary">#${escaparHTML(idMostrar)}</span></td>
                 <td><strong>${escaparHTML(paciente.nombre || 'Sin nombre')}</strong></td>
                 <td>${escaparHTML(paciente.diagnosticoInicial || 'N/A')}</td>
                 <td>${escaparHTML(nombreFamiliar)}</td>
                 <td>${escaparHTML(paciente.fechaIngreso || 'N/A')}</td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-info text-white me-1" onclick="verExpediente(${paciente.idPaciente})">
+                    <button class="btn btn-sm btn-info text-white me-1" onclick="verExpediente(${idMostrar})">
                         👁️ Ver Expediente
                     </button>
-                    <button class="btn btn-sm btn-warning fw-bold" onclick="abrirModalRemision(${paciente.idPaciente}, '${escaparHTML(nombrePacienteSeguro)}')">
-                        🏥 Remitir
-                    </button>
+                    ${paciente.remitido ? 
+                        `<button class="btn btn-sm btn-secondary fw-bold" disabled>
+                            ⏳ Remitido
+                        </button>` 
+                        : 
+                        `<button class="btn btn-sm btn-warning fw-bold" onclick="abrirModalRemision(${idMostrar}, '${escaparHTML(nombrePacienteSeguro)}')">
+                            🏥 Remitir
+                        </button>`
+                    }
                 </td>
             `;
             fragmento.appendChild(fila);
@@ -381,7 +410,7 @@ function renderizarTablaMedico(pacientes) {
 }
 
 function verExpediente(idPaciente) {
-    const paciente = listaPacientesGlobal.find(p => p.idPaciente === idPaciente);
+    const paciente = listaPacientesGlobal.find(p => (p.idPaciente || p.id) == idPaciente);
     if (!paciente) return;
 
     const contenedor = document.getElementById('contenido-expediente');
@@ -477,7 +506,6 @@ async function abrirModalRemision(idPaciente, nombrePaciente) {
     }
 }
 
-/*
 async function guardarRemision(evento) {
     if (evento) evento.preventDefault();
 
@@ -495,82 +523,13 @@ async function guardarRemision(evento) {
         return;
     }
 
-    const paciente = listaPacientesGlobal.find(p => p.idPaciente == idPaciente);
+    const paciente = listaPacientesGlobal.find(p => (p.idPaciente || p.id) == idPaciente);
 
     if (!paciente) {
         Swal.fire('Error', 'No se encontró la información del paciente.', 'error');
         return;
     }
 
-    const solicitudPayload = {
-        idSolicitud: parseInt(idPaciente, 10),
-        nombrePaciente: paciente.nombre || 'Paciente sin nombre',
-        nombreFamiliar: paciente.familiar?.nombre || 'Familiar',
-        correoFamiliar: paciente.familiar?.correo || '',
-        medicoEspecialista: especialidadVal,
-        idEnfermero: parseInt(idEnfermeroVal, 10),
-        motivo: motivoVal
-    };
-
-    const botonSubmit = document.querySelector('#formRemision button[type="submit"]');
-    const textoOriginal = botonSubmit ? botonSubmit.innerHTML : 'Guardar y Notificar';
-    setButtonLoading(botonSubmit, true);
-
-    try {
-        await fetchData('http://localhost:8081/api/solicitudes', {
-            method: 'POST',
-            body: JSON.stringify(solicitudPayload)
-        });
-
-        const modalElement = document.getElementById('modalRemision');
-        const modal = bootstrap.Modal.getInstance(modalElement);
-        if (modal) modal.hide();
-
-        Swal.fire({
-            title: '¡Remisión Registrada!',
-            text: 'La remisión hacia la especialidad fue procesada con éxito y se envió la notificación al familiar.',
-            icon: 'success',
-            confirmButtonText: 'Aceptar',
-            confirmButtonColor: '#0d6efd'
-        });
-
-        const formRemision = document.getElementById('formRemision');
-        if (formRemision) formRemision.reset();
-
-    } catch (error) {
-        console.error('Error al procesar la remisión:', error);
-        Swal.fire('Error', error.message || 'No se pudo enviar la solicitud de remisión.', 'error');
-    } finally {
-        setButtonLoading(botonSubmit, false, textoOriginal);
-    }
-}
-*/
-
-async function guardarRemision(evento) {
-    if (evento) evento.preventDefault();
-
-    const idPaciente = document.getElementById('remision-id-paciente')?.value;
-    const selectEspecialidad = document.getElementById('remision-especialidad');
-    const selectEnfermero = document.getElementById('remision-enfermero');
-    const motivoInput = document.getElementById('remision-motivo');
-
-    const especialidadVal = selectEspecialidad ? selectEspecialidad.value : '';
-    const idEnfermeroVal = selectEnfermero ? selectEnfermero.value : '';
-    const motivoVal = motivoInput ? motivoInput.value.trim() : '';
-
-    if (!especialidadVal || !idEnfermeroVal || !motivoVal) {
-        Swal.fire('Atención', 'Por favor complete todos los campos obligatorios.', 'warning');
-        return;
-    }
-
-    const paciente = listaPacientesGlobal.find(p => p.idPaciente == idPaciente);
-
-    if (!paciente) {
-        Swal.fire('Error', 'No se encontró la información del paciente.', 'error');
-        return;
-    }
-
-    // Estructura corregida: Se envía idPaciente en lugar de forzar idSolicitud
     const solicitudPayload = {
         idPaciente: parseInt(idPaciente, 10),
         nombrePaciente: paciente.nombre || 'Paciente sin nombre',
@@ -586,25 +545,34 @@ async function guardarRemision(evento) {
     setButtonLoading(botonSubmit, true);
 
     try {
-        await fetchData('http://localhost:8081/api/solicitudes', {
+        await fetchData(API_URL_SOLICITUDES, {
             method: 'POST',
             body: JSON.stringify(solicitudPayload)
         });
 
+        // 1. Cambiar estado local
+        paciente.remitido = true;
+
+        // 2. Renderizar tabla inmediatamente para que el botón cambie a "⏳ Remitido"
+        renderizarTablaMedico(listaPacientesGlobal);
+
+        // 3. Cerrar modal y resetear formulario
         const modalElement = document.getElementById('modalRemision');
-        const modal = bootstrap.Modal.getInstance(modalElement);
-        if (modal) modal.hide();
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement) || bootstrap.Modal.getOrCreateInstance(modalElement);
+            modal.hide();
+        }
+
+        const formRemision = document.getElementById('formRemision');
+        if (formRemision) formRemision.reset();
 
         Swal.fire({
             title: '¡Remisión Registrada!',
-            text: 'La remisión fue procesada con éxito y se guardó en el sistema.',
+            text: 'La remisión fue procesada con éxito y se envió la notificación al familiar.',
             icon: 'success',
             confirmButtonText: 'Aceptar',
             confirmButtonColor: '#0d6efd'
         });
-
-        const formRemision = document.getElementById('formRemision');
-        if (formRemision) formRemision.reset();
 
     } catch (error) {
         console.error('Error al procesar la remisión:', error);
@@ -638,7 +606,7 @@ function filtrarPacientes(textoBusqueda) {
 }
 
 function prepararEdicion(id) {
-    const paciente = listaPacientesGlobal.find(p => p.idPaciente === id);
+    const paciente = listaPacientesGlobal.find(p => (p.idPaciente || p.id) === id);
     if (!paciente) return;
 
     pacienteEditandoId = id;
@@ -703,7 +671,7 @@ async function guardarPaciente(evento) {
     }
 
     const esEdicion = pacienteEditandoId !== null;
-    const pacienteActual = esEdicion ? listaPacientesGlobal.find(p => p.idPaciente === pacienteEditandoId) : null;
+    const pacienteActual = esEdicion ? listaPacientesGlobal.find(p => (p.idPaciente || p.id) === pacienteEditandoId) : null;
 
     const nombreFamiliar = document.getElementById('paciente-familiar').value.trim();
     let familiarObj = null;
@@ -789,34 +757,32 @@ async function eliminarPaciente(id) {
 document.addEventListener('DOMContentLoaded', () => {
     const infoUsuario = document.getElementById('info-usuario');
     if (infoUsuario && usuario) {
-        infoUsuario.textContent = `${usuario.nombre} (${usuario.rol})`;
+        infoUsuario.textContent = `${usuario.nombre || 'Usuario'} (${usuario.rol || ''})`;
     }
 
-    aplicarLimitesFechas();
+    // Cargar datos iniciales
     cargarPacientes();
     cargarDatosUsuarios();
+    aplicarLimitesFechas();
+
+    // Event listeners para formularios
+    const formUsuario = document.getElementById('form-usuario');
+    if (formUsuario) {
+        formUsuario.addEventListener('submit', guardarUsuario);
+    }
 
     const formPaciente = document.getElementById('form-paciente');
-    if (formPaciente) formPaciente.addEventListener('submit', guardarPaciente);
-
-    const formUsuario = document.getElementById('form-usuario');
-    if (formUsuario) formUsuario.addEventListener('submit', guardarUsuario);
+    if (formPaciente) {
+        formPaciente.addEventListener('submit', guardarPaciente);
+    }
 
     const formRemision = document.getElementById('formRemision');
-    if (formRemision) formRemision.addEventListener('submit', guardarRemision);
-
-    const modalPacienteElement = document.getElementById('modalPaciente');
-    if (modalPacienteElement) {
-        modalPacienteElement.addEventListener('hidden.bs.modal', limpiarFormularioPaciente);
+    if (formRemision) {
+        formRemision.addEventListener('submit', guardarRemision);
     }
 
-    const modalUsuarioElement = document.getElementById('modalUsuario');
-    if (modalUsuarioElement) {
-        modalUsuarioElement.addEventListener('hidden.bs.modal', limpiarFormularioUsuario);
-    }
-
-    const buscadores = document.querySelectorAll('.input-buscar-paciente');
-    buscadores.forEach(input => {
-        input.addEventListener('input', debounce((e) => filtrarPacientes(e.target.value), 300));
+    // Buscador
+    document.querySelectorAll('.input-buscar-paciente').forEach(input => {
+        input.addEventListener('input', debounce(e => filtrarPacientes(e.target.value)));
     });
 });
