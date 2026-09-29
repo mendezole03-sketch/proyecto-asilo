@@ -48,6 +48,9 @@ public class Solicitud {
     @Column(name = "estado", length = 20)
     private String estado = "PENDIENTE"; // PENDIENTE, AGENDADA, COMPLETADA, CANCELADA
 
+    @Column(name = "motivo_cancelacion", length = 500)
+    private String motivoCancelacion;
+
     // --- CONSTRUCTORES ---
 
     public Solicitud() {
@@ -56,7 +59,7 @@ public class Solicitud {
     public Solicitud(Long idSolicitud, Integer idPaciente, String nombrePaciente, String nombreFamiliar, 
                      String correoFamiliar, String medicoEspecialista, Integer idMedicoEspecialista, 
                      Integer idEnfermero, String motivo, LocalDate fechaSolicitud, LocalDate fechaCita, 
-                     String horaCita, String estado) {
+                     String horaCita, String estado, String motivoCancelacion) {
         this.idSolicitud = idSolicitud;
         this.idPaciente = idPaciente;
         this.nombrePaciente = nombrePaciente;
@@ -70,6 +73,7 @@ public class Solicitud {
         this.fechaCita = fechaCita;
         this.horaCita = horaCita;
         this.estado = estado != null ? estado : "PENDIENTE";
+        this.motivoCancelacion = motivoCancelacion;
     }
 
     // --- GETTERS Y SETTERS ---
@@ -176,5 +180,13 @@ public class Solicitud {
 
     public void setEstado(String estado) {
         this.estado = estado;
+    }
+
+    public String getMotivoCancelacion() {
+        return motivoCancelacion;
+    }
+
+    public void setMotivoCancelacion(String motivoCancelacion) {
+        this.motivoCancelacion = motivoCancelacion;
     }
 }

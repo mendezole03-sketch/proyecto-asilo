@@ -8,7 +8,6 @@ if (!usuarioGuardado) {
 }
 
 const usuario = JSON.parse(usuarioGuardado);
-
 const paginaActual = window.location.pathname.split('/').pop();
 
 // Redirecciones según el rol del usuario
@@ -19,6 +18,8 @@ if (usuario.rol === 'MEDICO_GENERAL' && paginaActual === 'index.html') {
 } else if (usuario.rol === 'ADMIN' && (paginaActual === 'medico-general.html' || paginaActual === 'fundacion.html')) {
     window.location.href = 'index.html';
 }
+
+
 
 function cerrarSesion() {
     localStorage.removeItem('usuario');
@@ -122,6 +123,12 @@ function aplicarLimitesFechas() {
         inputNacimiento.setAttribute("min", "1900-01-01");
         inputNacimiento.setAttribute("max", fechaMaxNacimientoStr);
     }
+
+    // Configurar fecha mínima para agendar cita (Hoy o en adelante)
+    const inputAgendarFecha = document.getElementById("agendar-fecha");
+    if (inputAgendarFecha) {
+        inputAgendarFecha.setAttribute("min", fechaHoyStr);
+    }
 }
 
 /* ==========================================================================
@@ -184,8 +191,10 @@ async function guardarUsuario(evento) {
         Swal.fire('Éxito', 'Usuario creado con éxito.', 'success');
         
         const modalElement = document.getElementById('modalUsuario');
-        const modal = bootstrap.Modal.getInstance(modalElement);
-        if (modal) modal.hide();
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) modal.hide();
+        }
 
         limpiarFormularioUsuario();
         await cargarDatosUsuarios();
@@ -263,7 +272,7 @@ async function cargarDatosUsuarios() {
    ========================================================================== */
 
 async function cargarPacientes() {
-    if (usuario.rol === 'FUNDACION') return; // Fundación no maneja este módulo
+    if (usuario.rol === 'FUNDACION') return;
 
     const tbodies = document.querySelectorAll('.tabla-pacientes-body');
     tbodies.forEach(tbody => {
@@ -285,7 +294,7 @@ async function cargarPacientes() {
                 });
             }
         } catch (e) {
-            console.warn('No se pudieron verificar las solicitudes activas desde dbo.Solicitudes:', e);
+            console.warn('No se pudieron verificar las solicitudes activas:', e);
         }
 
         if (usuario.rol === 'MEDICO_GENERAL') {
@@ -351,12 +360,8 @@ function renderizarTablaPacientes(pacientes) {
                 <td><span class="badge bg-success">${escaparHTML(nombreMedico)}</span></td>
                 <td>${escaparHTML(paciente.fechaIngreso || 'N/A')}</td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="prepararEdicion(${idMostrar})">
-                        ✏️ Editar
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarPaciente(${idMostrar})">
-                        🗑️ Borrar
-                    </button>
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="prepararEdicion(${idMostrar})">✏️ Editar</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarPaciente(${idMostrar})">🗑️ Borrar</button>
                 </td>
             `;
             fragmento.appendChild(fila);
@@ -393,17 +398,10 @@ function renderizarTablaMedico(pacientes) {
                 <td>${escaparHTML(nombreFamiliar)}</td>
                 <td>${escaparHTML(paciente.fechaIngreso || 'N/A')}</td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-info text-white me-1" onclick="verExpediente(${idMostrar})">
-                        👁️ Ver Expediente
-                    </button>
+                    <button class="btn btn-sm btn-info text-white me-1" onclick="verExpediente(${idMostrar})">👁️ Ver Expediente</button>
                     ${paciente.remitido ? 
-                        `<button class="btn btn-sm btn-secondary fw-bold" disabled>
-                            ⏳ Remitido
-                        </button>` 
-                        : 
-                        `<button class="btn btn-sm btn-warning fw-bold" onclick="abrirModalRemision(${idMostrar}, '${escaparHTML(nombrePacienteSeguro)}')">
-                            🏥 Remitir
-                        </button>`
+                        `<button class="btn btn-sm btn-secondary fw-bold" disabled>⏳ Remitido</button>` : 
+                        `<button class="btn btn-sm btn-warning fw-bold" onclick="abrirModalRemision(${idMostrar}, '${escaparHTML(nombrePacienteSeguro)}')">🏥 Remitir</button>`
                     }
                 </td>
             `;
@@ -756,7 +754,7 @@ async function eliminarPaciente(id) {
    ========================================================================== */
 
 async function cargarSolicitudesFundacion() {
-    const tbody = document.getElementById('tabla-solicitudes-fundacion-body');
+    const tbody = document.getElementById('tabla-solicitudes-body') || document.getElementById('tabla-solicitudes-fundacion-body');
     if (!tbody) return;
 
     tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
@@ -767,11 +765,13 @@ async function cargarSolicitudesFundacion() {
 
         let pendientes = 0;
         let agendadas = 0;
+        let canceladas = 0;
 
         tbody.innerHTML = '';
 
         if (listaSolicitudesFundacion.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No hay solicitudes registradas.</td></tr>';
+            actualizarMetricasFundacion(0, 0, 0);
             return;
         }
 
@@ -781,180 +781,307 @@ async function cargarSolicitudesFundacion() {
             const estado = sol.estado || 'PENDIENTE';
             if (estado === 'PENDIENTE') pendientes++;
             if (estado === 'AGENDADA') agendadas++;
+            if (estado === 'CANCELADA') canceladas++;
+
+            const idSolicitud = sol.idSolicitud || sol.id;
+            const fechaHora = (sol.fechaCita && sol.horaCita) ? `${sol.fechaCita} - ${sol.horaCita}` : 'Sin asignar';
+            
+            let badgeEstado = '<span class="badge bg-warning text-dark">PENDIENTE</span>';
+            if (estado === 'AGENDADA') {
+                badgeEstado = '<span class="badge bg-success">AGENDADA</span>';
+            } else if (estado === 'CANCELADA') {
+                badgeEstado = '<span class="badge bg-danger">CANCELADA</span>';
+            }
 
             const fila = document.createElement('tr');
-            
-            const badgeEstado = estado === 'PENDIENTE' 
-                ? '<span class="badge bg-warning text-dark">⏳ Pendiente</span>'
-                : '<span class="badge bg-success">📅 Agendada</span>';
-
-            const infoFechaHora = (sol.fechaCita && sol.horaCita) 
-                ? `<strong>${sol.fechaCita}</strong> a las <strong>${sol.horaCita}</strong>`
-                : '<span class="text-muted">Por asignar</span>';
-
             fila.innerHTML = `
-                <td><span class="badge bg-secondary">#${sol.idSolicitud}</span></td>
-                <td><strong>${escaparHTML(sol.nombrePaciente)}</strong></td>
-                <td><span class="badge bg-info text-dark">${escaparHTML(sol.medicoEspecialista)}</span></td>
-                <td>${escaparHTML(sol.motivo)}</td>
+                <td><span class="badge bg-secondary">#${escaparHTML(idSolicitud)}</span></td>
+                <td><strong>${escaparHTML(sol.nombrePaciente || 'Sin Nombre')}</strong></td>
+                <td><span class="badge bg-info text-dark">${escaparHTML(sol.medicoEspecialista || 'Especialidad')}</span></td>
+                <td>${escaparHTML(sol.motivo || 'Sin motivo')}</td>
+                <td>${escaparHTML(fechaHora)}</td>
                 <td>${badgeEstado}</td>
-                <td>${infoFechaHora}</td>
                 <td class="text-center">
-                    ${estado === 'PENDIENTE' ? 
-                        `<button class="btn btn-sm btn-primary fw-bold" onclick="abrirModalAgendarCita(${sol.idSolicitud})">
-                            📅 Agendar Cita
-                        </button>` 
-                        : 
-                        `<button class="btn btn-sm btn-outline-secondary" disabled>
-                            ✅ Cita Asignada
-                        </button>`
-                    }
+                    ${estado === 'PENDIENTE' ? `
+                        <button class="btn btn-sm btn-primary me-1" onclick="abrirModalAgendar(${idSolicitud})">📅 Agendar</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="abrirModalCancelar(${idSolicitud})">❌ Cancelar</button>
+                    ` : estado === 'AGENDADA' ? `
+                        <button class="btn btn-sm btn-outline-danger" onclick="abrirModalCancelar(${idSolicitud})">❌ Cancelar</button>
+                    ` : `
+                        <span class="text-muted small">Sin acciones</span>
+                    `}
                 </td>
             `;
             fragmento.appendChild(fila);
         });
 
         tbody.appendChild(fragmento);
-
-        const elPendientes = document.getElementById('total-pendientes');
-        const elAgendadas = document.getElementById('total-agendadas');
-        if (elPendientes) elPendientes.textContent = pendientes;
-        if (elAgendadas) elAgendadas.textContent = agendadas;
+        actualizarMetricasFundacion(pendientes, agendadas, canceladas);
 
     } catch (error) {
         console.error('Error al cargar solicitudes para la fundación:', error);
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error al cargar las solicitudes.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error al conectar con el servidor.</td></tr>';
     }
 }
 
-async function abrirModalAgendarCita(idSolicitud) {
-    const solicitud = listaSolicitudesFundacion.find(s => s.idSolicitud === idSolicitud);
-    if (!solicitud) return;
+function actualizarMetricasFundacion(pendientes, agendadas, canceladas) {
+    const elPendientes = document.getElementById('total-pendientes');
+    const elAgendadas = document.getElementById('total-agendadas');
+    const elCanceladas = document.getElementById('total-canceladas');
 
-    document.getElementById('agendar-id-solicitud').value = idSolicitud;
-    document.getElementById('agendar-nombre-paciente').value = solicitud.nombrePaciente;
-    document.getElementById('agendar-especialidad').value = solicitud.medicoEspecialista;
-    document.getElementById('agendar-fecha').value = '';
-    document.getElementById('agendar-hora').value = '';
+    if (elPendientes) elPendientes.textContent = pendientes;
+    if (elAgendadas) elAgendadas.textContent = agendadas;
+    if (elCanceladas) elCanceladas.textContent = canceladas;
+}
 
-    const hoy = new Date().toISOString().split('T')[0];
-    document.getElementById('agendar-fecha').setAttribute('min', hoy);
+async function abrirModalAgendar(idSolicitud) {
+    const inputId = document.getElementById('agendar-idSolicitud');
+    const selectMedico = document.getElementById('agendar-medico');
 
-    const selectMedico = document.getElementById('agendar-medico-especialista');
-    selectMedico.innerHTML = '<option value="" selected disabled>Cargando especialistas...</option>';
+    if (inputId) inputId.value = idSolicitud;
 
-    try {
-        const usuarios = await fetchData(API_URL_USUARIOS);
-        
-        const especialidadRequerida = solicitud.medicoEspecialista.trim().toLowerCase();
-        
-        const especialistasFiltrados = usuarios.filter(u => 
-            u.rol === 'MEDICO_ESPECIALISTA' && 
-            u.especialidad && 
-            u.especialidad.trim().toLowerCase() === especialidadRequerida
-        );
+    // Obtener solicitud elegida y su especialidad requerida
+    const solicitud = listaSolicitudesFundacion.find(s => (s.idSolicitud || s.id) == idSolicitud);
+    const especialidadRequerida = solicitud?.medicoEspecialista || '';
 
-        if (especialistasFiltrados.length === 0) {
-            selectMedico.innerHTML = `<option value="" disabled>No hay especialistas disponibles para ${solicitud.medicoEspecialista}</option>`;
-        } else {
-            selectMedico.innerHTML = '<option value="" selected disabled>Seleccione un médico especialista...</option>';
-            especialistasFiltrados.forEach(med => {
-                const opt = document.createElement('option');
-                opt.value = med.idUsuario || med.id;
-                opt.textContent = `${med.nombre} (${med.especialidad})`;
-                selectMedico.appendChild(opt);
+    if (selectMedico) {
+        selectMedico.innerHTML = '<option value="" selected disabled>Cargando especialistas...</option>';
+
+        try {
+            const usuarios = await fetchData(API_URL_USUARIOS);
+
+            // Filtrar solo los médicos especialistas con la especialidad coincidente
+            const especialistasFiltrados = usuarios.filter(u => {
+                const esEspecialista = u.rol && u.rol.toUpperCase() === 'MEDICO_ESPECIALISTA';
+                const coincideEspecialidad = u.especialidad && 
+                    u.especialidad.trim().toLowerCase() === especialidadRequerida.trim().toLowerCase();
+                return esEspecialista && coincideEspecialidad;
             });
-        }
 
-        const modalElement = document.getElementById('modalAgendarCita');
+            selectMedico.innerHTML = '';
+
+            if (especialistasFiltrados.length === 0) {
+                selectMedico.innerHTML = `<option value="" disabled selected>No hay médicos registrados para ${escaparHTML(especialidadRequerida || 'esta especialidad')}</option>`;
+            } else {
+                selectMedico.innerHTML = `<option value="" selected disabled>-- Seleccione médico de ${escaparHTML(especialidadRequerida)} --</option>`;
+                especialistasFiltrados.forEach(med => {
+                    const option = document.createElement('option');
+                    option.value = med.idUsuario || med.id;
+                    option.textContent = `${med.nombre} (${med.especialidad})`;
+                    selectMedico.appendChild(option);
+                });
+            }
+
+        } catch (error) {
+            console.error('Error al cargar médicos especialistas:', error);
+            selectMedico.innerHTML = '<option value="" disabled>Error al cargar médicos especialistas</option>';
+        }
+    }
+
+    aplicarLimitesFechas();
+
+    const modalElement = document.getElementById('modalAgendar');
+    if (modalElement) {
         const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         modal.show();
-
-    } catch (error) {
-        console.error('Error al cargar médicos especialistas:', error);
-        Swal.fire('Error', 'No se pudieron obtener los médicos especialistas.', 'error');
     }
 }
 
-async function agendarCitaFundacion(evento) {
+async function guardarAgendamiento(evento) {
     if (evento) evento.preventDefault();
 
-    const idSolicitud = document.getElementById('agendar-id-solicitud').value;
-    const idMedicoEspecialista = document.getElementById('agendar-medico-especialista').value;
-    const fechaCita = document.getElementById('agendar-fecha').value;
-    const horaCita = document.getElementById('agendar-hora').value;
+    const idSolicitud = document.getElementById('agendar-idSolicitud')?.value;
+    const fecha = document.getElementById('agendar-fecha')?.value;
+    const hora = document.getElementById('agendar-hora')?.value;
+    const idMedicoEspecialista = document.getElementById('agendar-medico')?.value;
 
-    if (!idMedicoEspecialista || !fechaCita || !horaCita) {
-        Swal.fire('Atención', 'Por favor complete todos los campos obligatorios.', 'warning');
+    if (!idMedicoEspecialista) {
+        Swal.fire('Atención', 'Debe seleccionar un médico especialista.', 'warning');
         return;
     }
 
-    const payload = {
-        idMedicoEspecialista: parseInt(idMedicoEspecialista, 10),
-        fechaCita: fechaCita,
-        horaCita: horaCita
-    };
+    if (!fecha || !hora) {
+        Swal.fire('Atención', 'Por favor seleccione la fecha y la hora para la cita.', 'warning');
+        return;
+    }
 
-    const btnSubmit = document.querySelector('#formAgendarCita button[type="submit"]');
-    const textoOriginal = btnSubmit ? btnSubmit.innerHTML : 'Confirmar y Agendar Cita';
-    setButtonLoading(btnSubmit, true);
+    // 1. Validar que la fecha no sea una fecha pasada
+    const hoyStr = new Date().toISOString().split('T')[0];
+    if (fecha < hoyStr) {
+        Swal.fire('Atención', 'No se puede agendar una cita en una fecha pasada.', 'warning');
+        return;
+    }
+
+    // 2. Validar que no exista choque de horario para el mismo especialista
+    const choqueHorario = listaSolicitudesFundacion.some(sol => {
+        const idActual = sol.idSolicitud || sol.id;
+        const mismoMedico = sol.idMedicoEspecialista && String(sol.idMedicoEspecialista) === String(idMedicoEspecialista);
+        return (
+            String(idActual) !== String(idSolicitud) &&
+            mismoMedico &&
+            sol.fechaCita === fecha &&
+            sol.horaCita === hora &&
+            sol.estado !== 'CANCELADA'
+        );
+    });
+
+    if (choqueHorario) {
+        Swal.fire('Horario Ocupado', 'El médico especialista seleccionado ya tiene una cita en esa fecha y hora.', 'warning');
+        return;
+    }
+
+    const botonSubmit = document.querySelector('#form-agendar button[type="submit"]');
+    const textoOriginal = botonSubmit ? botonSubmit.innerHTML : 'Confirmar y Agendar Cita';
+    setButtonLoading(botonSubmit, true);
 
     try {
         await fetchData(`${API_URL_SOLICITUDES}/${idSolicitud}/agendar`, {
             method: 'PUT',
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ 
+                fechaCita: fecha, 
+                horaCita: hora, 
+                idMedicoEspecialista: parseInt(idMedicoEspecialista, 10),
+                estado: 'AGENDADA' 
+            })
         });
 
-        Swal.fire('¡Cita Agendada!', 'La cita médica ha sido asignada con éxito.', 'success');
+        const modalElement = document.getElementById('modalAgendar');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) modal.hide();
+        }
 
-        const modalElement = document.getElementById('modalAgendarCita');
-        const modal = bootstrap.Modal.getInstance(modalElement);
-        if (modal) modal.hide();
+        const formAgendar = document.getElementById('form-agendar');
+        if (formAgendar) formAgendar.reset();
 
+        Swal.fire('¡Éxito!', 'La cita médica ha sido agendada correctamente con el especialista.', 'success');
         await cargarSolicitudesFundacion();
 
     } catch (error) {
         console.error('Error al agendar cita:', error);
-        Swal.fire('Horario no disponible', error.message || 'El especialista ya tiene una cita agendada a esa hora.', 'error');
+        Swal.fire('Error', error.message || 'No se pudo agendar la cita.', 'error');
     } finally {
-        setButtonLoading(btnSubmit, false, textoOriginal);
+        setButtonLoading(botonSubmit, false, textoOriginal);
+    }
+}
+
+function abrirModalCancelar(idSolicitud) {
+    const inputId = document.getElementById('cancelar-idSolicitud');
+    if (inputId) inputId.value = idSolicitud;
+
+    const modalElement = document.getElementById('modalCancelar');
+    if (modalElement) {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        modal.show();
+    }
+}
+
+async function guardarCancelacion(evento) {
+    if (evento) evento.preventDefault();
+
+    const idSolicitud = document.getElementById('cancelar-idSolicitud')?.value;
+    const motivo = document.getElementById('cancelar-motivo')?.value.trim();
+
+    if (!motivo) {
+        Swal.fire('Atención', 'Debe ingresar el motivo de cancelación.', 'warning');
+        return;
+    }
+
+    const botonSubmit = document.querySelector('#form-cancelar button[type="submit"]');
+    const textoOriginal = botonSubmit ? botonSubmit.innerHTML : 'Confirmar Cancelación';
+    setButtonLoading(botonSubmit, true);
+
+    try {
+        await fetchData(`${API_URL_SOLICITUDES}/${idSolicitud}/cancelar`, {
+            method: 'PUT',
+            body: JSON.stringify({ 
+                motivoCancelacion: motivo, 
+                estado: 'CANCELADA' 
+            })
+        });
+
+        const modalElement = document.getElementById('modalCancelar');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) modal.hide();
+        }
+
+        const formCancelar = document.getElementById('form-cancelar');
+        if (formCancelar) formCancelar.reset();
+
+        Swal.fire('Cancelada', 'La solicitud o cita ha sido cancelada.', 'info');
+        await cargarSolicitudesFundacion();
+
+    } catch (error) {
+        console.error('Error al cancelar la cita:', error);
+        Swal.fire('Error', error.message || 'No se pudo procesar la cancelación.', 'error');
+    } finally {
+        setButtonLoading(botonSubmit, false, textoOriginal);
     }
 }
 
 /* ==========================================================================
-   INICIALIZACIÓN DE EVENTOS
+   INICIALIZACIÓN Y EVENT LISTENERS
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
-    const infoUsuario = document.getElementById('info-usuario');
-    if (infoUsuario && usuario) {
-        infoUsuario.textContent = `${usuario.nombre || 'Usuario'} (${usuario.rol || ''})`;
+    // Configurar nombre de usuario en UI
+    const infoUsuarioEl = document.getElementById('info-usuario');
+    if (infoUsuarioEl && typeof usuario !== 'undefined' && usuario.nombre) {
+        infoUsuarioEl.textContent = usuario.nombre;
     }
 
-    // Cargar datos según la vista
-    if (paginaActual === 'fundacion.html') {
-        cargarSolicitudesFundacion();
-    } else {
-        cargarPacientes();
-        cargarDatosUsuarios();
-        aplicarLimitesFechas();
-    }
-
-    // Event listeners para formularios
+    // Listeners de Formularios
     const formUsuario = document.getElementById('form-usuario');
-    if (formUsuario) formUsuario.addEventListener('submit', guardarUsuario);
+    if (formUsuario && typeof guardarUsuario === 'function') {
+        formUsuario.addEventListener('submit', guardarUsuario);
+    }
 
     const formPaciente = document.getElementById('form-paciente');
-    if (formPaciente) formPaciente.addEventListener('submit', guardarPaciente);
+    if (formPaciente) {
+        formPaciente.addEventListener('submit', guardarPaciente);
+    }
 
     const formRemision = document.getElementById('formRemision');
-    if (formRemision) formRemision.addEventListener('submit', guardarRemision);
+    if (formRemision && typeof guardarRemision === 'function') {
+        formRemision.addEventListener('submit', guardarRemision);
+    }
 
-    const formAgendarCita = document.getElementById('formAgendarCita');
-    if (formAgendarCita) formAgendarCita.addEventListener('submit', agendarCitaFundacion);
+    const formAgendar = document.getElementById('form-agendar');
+    if (formAgendar) {
+        formAgendar.addEventListener('submit', guardarAgendamiento);
+    }
 
-    // Buscador
-    document.querySelectorAll('.input-buscar-paciente').forEach(input => {
-        input.addEventListener('input', debounce(e => filtrarPacientes(e.target.value)));
+    const formCancelar = document.getElementById('form-cancelar');
+    if (formCancelar) {
+        formCancelar.addEventListener('submit', guardarCancelacion);
+    }
+
+    // Buscador reactivo
+    const inputsBuscar = document.querySelectorAll('.input-buscar-paciente');
+    inputsBuscar.forEach(input => {
+        if (typeof debounce === 'function') {
+            input.addEventListener('input', debounce((e) => filtrarPacientes(e.target.value), 300));
+        } else {
+            input.addEventListener('input', (e) => filtrarPacientes(e.target.value));
+        }
     });
+
+    // Carga inicial de límites de fechas
+    aplicarLimitesFechas();
+
+    // Carga automática al estar en fundacion.html
+    const tablaFundacion = document.getElementById('tabla-solicitudes-body') || document.getElementById('tabla-solicitudes-fundacion-body');
+    if (tablaFundacion) {
+        cargarSolicitudesFundacion();
+    } else if (typeof usuario !== 'undefined' && usuario.rol) {
+        if (usuario.rol === 'ADMIN') {
+            if (typeof cargarDatosUsuarios === 'function') cargarDatosUsuarios();
+            if (typeof cargarPacientes === 'function') cargarPacientes();
+        } else if (usuario.rol === 'MEDICO_GENERAL') {
+            if (typeof cargarPacientes === 'function') cargarPacientes();
+        } else if (usuario.rol === 'FUNDACION') {
+            cargarSolicitudesFundacion();
+        }
+    }
 });
