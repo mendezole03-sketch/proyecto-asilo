@@ -30,8 +30,8 @@ public class PacienteController {
     private UsuarioRepository usuarioRepository;
 
     @GetMapping
-    public List<Paciente> obtenerTodos() {
-        return pacienteRepository.findAll();
+    public List<Paciente> listarPacientesActivos() {
+        return pacienteRepository.findByActivoTrue();
     }
 
     @PostMapping
@@ -42,6 +42,9 @@ public class PacienteController {
             if (validacionFechas != null) {
                 return validacionFechas;
             }
+
+            // Asignar estado activo explícitamente para borrado lógico
+            paciente.setActivo(true);
 
             // Asignar Médico
             if (paciente.getMedico() != null && paciente.getMedico().getIdUsuario() != null) {
@@ -90,6 +93,11 @@ public class PacienteController {
                 pacienteExistente.setPsicopatologias(pacienteDetalles.getPsicopatologias());
                 pacienteExistente.setMedicamentosCajon(pacienteDetalles.getMedicamentosCajon());
 
+                // Mantener estado activo si no se especificó
+                if (pacienteDetalles.getActivo() != null) {
+                    pacienteExistente.setActivo(pacienteDetalles.getActivo());
+                }
+
                 // Actualizar Médico
                 if (pacienteDetalles.getMedico() != null && pacienteDetalles.getMedico().getIdUsuario() != null) {
                     Optional<Usuario> medicoOpt = usuarioRepository.findById(pacienteDetalles.getMedico().getIdUsuario());
@@ -122,14 +130,11 @@ public class PacienteController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminarPaciente(@PathVariable Integer id) {
-        Optional<Paciente> pacienteOptional = pacienteRepository.findById(id);
-
-        if (pacienteOptional.isPresent()) {
-            pacienteRepository.delete(pacienteOptional.get());
+        return pacienteRepository.findById(id).map(paciente -> {
+            paciente.setActivo(false); // Borrado lógico
+            pacienteRepository.save(paciente);
             return ResponseEntity.ok().build();
-        }
-
-        return ResponseEntity.notFound().build();
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     // --- MÉTODOS AUXILIARES ---
@@ -161,26 +166,31 @@ public class PacienteController {
     private void procesarFamiliar(Paciente paciente) {
         if (paciente.getFamiliar() != null && paciente.getFamiliar().getNombre() != null) {
             String nombreFamiliar = paciente.getFamiliar().getNombre().trim();
+
             if (nombreFamiliar.isEmpty()) {
                 paciente.setFamiliar(null);
                 return;
             }
 
             // Maneja múltiples coincidencias para evitar excepciones
-            List<Familiar> familiaresEncontrados = familiarRepository.findByNombreIgnoreCase(nombreFamiliar);
+            List<Familiar> familiaresEncontrados =
+                    familiarRepository.findByNombreIgnoreCase(nombreFamiliar);
 
             if (!familiaresEncontrados.isEmpty()) {
                 // Selecciona el primer familiar encontrado
                 Familiar familiar = familiaresEncontrados.get(0);
+
                 familiar.setTelefono(paciente.getFamiliar().getTelefono());
                 familiar.setCorreo(paciente.getFamiliar().getCorreo());
                 familiar.setDireccion(paciente.getFamiliar().getDireccion());
 
                 Familiar familiarActualizado = familiarRepository.save(familiar);
                 paciente.setFamiliar(familiarActualizado);
+
             } else {
                 // Si no existe, crea uno nuevo sin conservar IDs ambiguos
                 Familiar nuevoFamiliar = new Familiar();
+
                 nuevoFamiliar.setNombre(nombreFamiliar);
                 nuevoFamiliar.setTelefono(paciente.getFamiliar().getTelefono());
                 nuevoFamiliar.setCorreo(paciente.getFamiliar().getCorreo());

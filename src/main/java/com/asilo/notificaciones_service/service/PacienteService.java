@@ -14,8 +14,9 @@ public class PacienteService {
     @Autowired
     private PacienteRepository pacienteRepository;
 
+    // Obtener únicamente los pacientes activos
     public List<Paciente> obtenerTodos() {
-        return pacienteRepository.findAll();
+        return pacienteRepository.findByActivoTrue(); 
     }
 
     public Optional<Paciente> obtenerPorId(Integer id) {
@@ -26,7 +27,15 @@ public class PacienteService {
         return pacienteRepository.save(paciente);
     }
 
-    public void eliminar(Integer id) {
-        pacienteRepository.deleteById(id);
+    // Método para Borrado Lógico en lugar de eliminación física
+    public boolean eliminar(Integer id) {
+        Optional<Paciente> pacienteOpt = pacienteRepository.findById(id);
+        if (pacienteOpt.isPresent()) {
+            Paciente paciente = pacienteOpt.get();
+            paciente.setActivo(false); // Cambia el estado a inactivo
+            pacienteRepository.save(paciente);
+            return true;
+        }
+        return false;
     }
 }

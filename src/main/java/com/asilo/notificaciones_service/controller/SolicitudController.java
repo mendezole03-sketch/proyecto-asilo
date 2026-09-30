@@ -4,6 +4,7 @@ import com.asilo.notificaciones_service.dto.AgendarCitaDTO;
 import com.asilo.notificaciones_service.dto.NotificacionDTO;
 import com.asilo.notificaciones_service.dto.SolicitudDTO;
 import com.asilo.notificaciones_service.model.Solicitud;
+import com.asilo.notificaciones_service.repository.PacienteRepository;
 import com.asilo.notificaciones_service.repository.SolicitudRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,10 +25,25 @@ public class SolicitudController {
     @Autowired
     private SolicitudRepository solicitudRepository;
 
-    // 1. Obtener todas las solicitudes registradas
+    @Autowired
+    private PacienteRepository pacienteRepository; // Inyección agregada para verificar el estado del paciente
+
+    // 1. Obtener todas las solicitudes registradas (ACTUALIZADO para Soft Delete)
     @GetMapping
     public List<Solicitud> obtenerTodasLasSolicitudes() {
-        return solicitudRepository.findAll();
+        List<Solicitud> solicitudes = solicitudRepository.findAll();
+
+        // Rellenar la bandera 'pacienteActivo' consultando el estado real en la BD
+        for (Solicitud sol : solicitudes) {
+            if (sol.getIdPaciente() != null) {
+                pacienteRepository.findById(sol.getIdPaciente()).ifPresentOrElse(
+                    paciente -> sol.setPacienteActivo(paciente.getActivo()),
+                    () -> sol.setPacienteActivo(false) // Si el paciente ya no existe, se marca inactivo
+                );
+            }
+        }
+
+        return solicitudes;
     }
 
     // 2. Crear solicitud de remisión (Médico General)
@@ -145,7 +161,7 @@ public class SolicitudController {
         return ResponseEntity.ok(actualizada);
     }
 
-    // 4. Cancelar cita / solicitud (ACTUALIZADO: recibe el motivoCancelacion)
+    // 4. Cancelar cita / solicitud (recibe el motivoCancelacion)
     @PutMapping("/{id}/cancelar")
     public ResponseEntity<?> cancelarSolicitud(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         Optional<Solicitud> optSolicitud = solicitudRepository.findById(id);

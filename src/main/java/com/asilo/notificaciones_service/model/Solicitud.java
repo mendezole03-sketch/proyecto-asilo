@@ -51,6 +51,10 @@ public class Solicitud {
     @Column(name = "motivo_cancelacion", length = 500)
     private String motivoCancelacion;
 
+    // --- NUEVO CAMPO: No se crea en la BD, solo se envía en la respuesta JSON ---
+    @Transient
+    private Boolean pacienteActivo;
+
     // --- CONSTRUCTORES ---
 
     public Solicitud() {
@@ -188,5 +192,14 @@ public class Solicitud {
 
     public void setMotivoCancelacion(String motivoCancelacion) {
         this.motivoCancelacion = motivoCancelacion;
+    }
+
+    // GETTER Y SETTER PARA EL BORRADO LÓGICO EN FRONTEND
+    public Boolean getPacienteActivo() {
+        return pacienteActivo;
+    }
+
+    public void setPacienteActivo(Boolean pacienteActivo) {
+        this.pacienteActivo = pacienteActivo;
     }
 }

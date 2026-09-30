@@ -51,6 +51,9 @@ public class Paciente {
     @JoinColumn(name = "id_medico")
     private Usuario medico;
 
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
     public Paciente() {}
 
     // Getters y Setters
@@ -83,4 +86,7 @@ public class Paciente {
 
     public Usuario getMedico() { return medico; }
     public void setMedico(Usuario medico) { this.medico = medico; }
+
+    public Boolean getActivo() { return activo; }
+    public void setActivo(Boolean activo) { this.activo = activo; }
 }

@@ -19,8 +19,6 @@ if (usuario.rol === 'MEDICO_GENERAL' && paginaActual === 'index.html') {
     window.location.href = 'index.html';
 }
 
-
-
 function cerrarSesion() {
     localStorage.removeItem('usuario');
     localStorage.removeItem('token');
@@ -752,6 +750,98 @@ async function eliminarPaciente(id) {
 /* ==========================================================================
    MÓDULO FUNDACIÓN: GESTIÓN Y AGENDAMIENTO DE CITAS
    ========================================================================== */
+/*
+async function cargarSolicitudesFundacion() {
+    const tbody = document.getElementById('tabla-solicitudes-body') || document.getElementById('tabla-solicitudes-fundacion-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
+
+    try {
+        const solicitudes = await fetchData(API_URL_SOLICITUDES);
+        listaSolicitudesFundacion = solicitudes || [];
+
+        let pendientes = 0;
+        let agendadas = 0;
+        let canceladas = 0;
+
+        tbody.innerHTML = '';
+
+        if (listaSolicitudesFundacion.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No hay solicitudes registradas.</td></tr>';
+            actualizarMetricasFundacion(0, 0, 0);
+            return;
+        }
+
+        const fragmento = document.createDocumentFragment();
+
+        listaSolicitudesFundacion.forEach(sol => {
+            const estado = sol.estado || 'PENDIENTE';
+            if (estado === 'PENDIENTE') pendientes++;
+            if (estado === 'AGENDADA') agendadas++;
+            if (estado === 'CANCELADA') canceladas++;
+
+            const idSolicitud = sol.idSolicitud || sol.id;
+            const fechaHora = (sol.fechaCita && sol.horaCita) ? `${sol.fechaCita} - ${sol.horaCita}` : 'Sin asignar';
+            
+            let badgeEstado = '<span class="badge bg-warning text-dark">PENDIENTE</span>';
+            if (estado === 'AGENDADA') {
+                badgeEstado = '<span class="badge bg-success">AGENDADA</span>';
+            } else if (estado === 'CANCELADA') {
+                badgeEstado = '<span class="badge bg-danger">CANCELADA</span>';
+            }
+
+            // Validar si el paciente está inactivo (borrado lógico por Admin)
+            const pacienteInactivo = sol.pacienteActivo === false || (sol.paciente && sol.paciente.activo === false);
+
+            let botonesAccion = '';
+
+            if (estado === 'PENDIENTE') {
+                if (pacienteInactivo) {
+                    // Si el paciente fue desactivado por el Admin, no permite agendar
+                    botonesAccion = `
+                        <span class="badge bg-secondary mb-1">Paciente Inactivo</span><br>
+                        <button class="btn btn-sm btn-outline-danger" onclick="abrirModalCancelar(${idSolicitud})">❌ Cancelar</button>
+                    `;
+                } else {
+                    botonesAccion = `
+                        <button class="btn btn-sm btn-primary me-1" onclick="abrirModalAgendar(${idSolicitud})">📅 Agendar</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="abrirModalCancelar(${idSolicitud})">❌ Cancelar</button>
+                    `;
+                }
+            } else if (estado === 'AGENDADA') {
+                botonesAccion = `
+                    <button class="btn btn-sm btn-outline-danger" onclick="abrirModalCancelar(${idSolicitud})">❌ Cancelar</button>
+                `;
+            } else {
+                botonesAccion = `<span class="text-muted small">Sin acciones</span>`;
+            }
+
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+                <td><span class="badge bg-secondary">#${escaparHTML(idSolicitud)}</span></td>
+                <td><strong>${escaparHTML(sol.nombrePaciente || 'Sin Nombre')}</strong></td>
+                <td><span class="badge bg-info text-dark">${escaparHTML(sol.medicoEspecialista || 'Especialidad')}</span></td>
+                <td>${escaparHTML(sol.motivo || 'Sin motivo')}</td>
+                <td>${escaparHTML(fechaHora)}</td>
+                <td>${badgeEstado}</td>
+                <td class="text-center">
+                    ${botonesAccion}
+                </td>
+            `;
+            fragmento.appendChild(fila);
+        });
+
+        tbody.appendChild(fragmento);
+        actualizarMetricasFundacion(pendientes, agendadas, canceladas);
+
+    } catch (error) {
+        console.error('Error al cargar solicitudes para la fundación:', error);
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error al conectar con el servidor.</td></tr>';
+    }
+}
+*/
+
 
 async function cargarSolicitudesFundacion() {
     const tbody = document.getElementById('tabla-solicitudes-body') || document.getElementById('tabla-solicitudes-fundacion-body');
@@ -793,6 +883,40 @@ async function cargarSolicitudesFundacion() {
                 badgeEstado = '<span class="badge bg-danger">CANCELADA</span>';
             }
 
+            // Evalúa explícitamente si el paciente está inactivo (false)
+            const pacienteInactivo = sol.pacienteActivo === false || (sol.paciente && sol.paciente.activo === false);
+
+            let botonesAccion = '';
+
+            if (estado === 'PENDIENTE') {
+                if (pacienteInactivo) {
+                    // Muestra advertencia y bloquea botón de Agendar
+                    botonesAccion = `
+                        <span class="badge bg-secondary mb-1">Paciente Inactivo</span><br>
+                        <button class="btn btn-sm btn-outline-danger me-1" onclick="abrirModalCancelar(${idSolicitud})">❌ Cancelar</button>
+                    `;
+                } else {
+                    botonesAccion = `
+                        <button class="btn btn-sm btn-primary me-1" onclick="abrirModalAgendar(${idSolicitud})">📅 Agendar</button>
+                        <button class="btn btn-sm btn-outline-danger me-1" onclick="abrirModalCancelar(${idSolicitud})">❌ Cancelar</button>
+                    `;
+                }
+            } else if (estado === 'AGENDADA') {
+                if (pacienteInactivo) {
+                    // Si ya tenía cita agendada pero el paciente fue eliminado, avisa a la Fundación
+                    botonesAccion = `
+                        <span class="badge bg-danger mb-1">⚠️ Paciente Dado de Baja</span><br>
+                        <button class="btn btn-sm btn-danger fw-bold" onclick="abrirModalCancelar(${idSolicitud})">❌ Liberar Cita</button>
+                    `;
+                } else {
+                    botonesAccion = `
+                        <button class="btn btn-sm btn-outline-danger" onclick="abrirModalCancelar(${idSolicitud})">❌ Cancelar</button>
+                    `;
+                }
+            } else {
+                botonesAccion = `<span class="text-muted small">Sin acciones</span>`;
+            }
+
             const fila = document.createElement('tr');
             fila.innerHTML = `
                 <td><span class="badge bg-secondary">#${escaparHTML(idSolicitud)}</span></td>
@@ -802,14 +926,7 @@ async function cargarSolicitudesFundacion() {
                 <td>${escaparHTML(fechaHora)}</td>
                 <td>${badgeEstado}</td>
                 <td class="text-center">
-                    ${estado === 'PENDIENTE' ? `
-                        <button class="btn btn-sm btn-primary me-1" onclick="abrirModalAgendar(${idSolicitud})">📅 Agendar</button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="abrirModalCancelar(${idSolicitud})">❌ Cancelar</button>
-                    ` : estado === 'AGENDADA' ? `
-                        <button class="btn btn-sm btn-outline-danger" onclick="abrirModalCancelar(${idSolicitud})">❌ Cancelar</button>
-                    ` : `
-                        <span class="text-muted small">Sin acciones</span>
-                    `}
+                    ${botonesAccion}
                 </td>
             `;
             fragmento.appendChild(fila);
@@ -835,13 +952,21 @@ function actualizarMetricasFundacion(pendientes, agendadas, canceladas) {
 }
 
 async function abrirModalAgendar(idSolicitud) {
+    // Validación de seguridad extra
+    const solicitud = listaSolicitudesFundacion.find(s => (s.idSolicitud || s.id) == idSolicitud);
+    const pacienteInactivo = solicitud?.pacienteActivo === false || (solicitud?.paciente && solicitud?.paciente.activo === false);
+
+    if (pacienteInactivo) {
+        Swal.fire('Acción no permitida', 'El paciente ha sido dado de baja del asilo y no se le pueden agendar nuevas citas.', 'warning');
+        return;
+    }
+
     const inputId = document.getElementById('agendar-idSolicitud');
     const selectMedico = document.getElementById('agendar-medico');
 
     if (inputId) inputId.value = idSolicitud;
 
     // Obtener solicitud elegida y su especialidad requerida
-    const solicitud = listaSolicitudesFundacion.find(s => (s.idSolicitud || s.id) == idSolicitud);
     const especialidadRequerida = solicitud?.medicoEspecialista || '';
 
     if (selectMedico) {
