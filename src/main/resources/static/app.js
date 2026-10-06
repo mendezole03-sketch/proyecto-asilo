@@ -10,15 +10,19 @@ if (!usuarioGuardado) {
 const usuario = JSON.parse(usuarioGuardado);
 const paginaActual = window.location.pathname.split('/').pop();
 
-// Redirecciones según el rol del usuario
-if (usuario.rol === 'MEDICO_GENERAL' && paginaActual === 'index.html') {
-    window.location.href = 'medico-general.html';
-} else if (usuario.rol === 'FUNDACION' && paginaActual === 'index.html') {
-    window.location.href = 'fundacion.html';
-} else if (usuario.rol === 'MEDICO_ESPECIALISTA' && paginaActual === 'index.html') {
-    window.location.href = 'medico-especialista.html';
-} else if (usuario.rol === 'ADMIN' && (paginaActual === 'medico-general.html' || paginaActual === 'fundacion.html' || paginaActual === 'medico-especialista.html')) {
-    // El Administrador puede navegar a donde prefiera o mantenerse en index.html
+
+
+// Redirecciones automáticas si está en index.html
+if (paginaActual === 'index.html' || paginaActual === '') {
+    if (usuario.rol === 'MEDICO_GENERAL') {
+        window.location.href = 'medico-general.html';
+    } else if (usuario.rol === 'FUNDACION') {
+        window.location.href = 'fundacion.html';
+    } else if (usuario.rol === 'MEDICO_ESPECIALISTA') {
+        window.location.href = 'medico-especialista.html';
+    } else if (usuario.rol === 'LABORATORIO') {
+        window.location.href = 'laboratorio.html'; // <--- AGREGAR ESTA LÍNEA
+    }
 }
 
 function cerrarSesion() {
