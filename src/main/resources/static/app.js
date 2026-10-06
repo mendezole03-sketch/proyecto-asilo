@@ -10,8 +10,6 @@ if (!usuarioGuardado) {
 const usuario = JSON.parse(usuarioGuardado);
 const paginaActual = window.location.pathname.split('/').pop();
 
-
-
 // Redirecciones automáticas si está en index.html
 if (paginaActual === 'index.html' || paginaActual === '') {
     if (usuario.rol === 'MEDICO_GENERAL') {
@@ -21,7 +19,9 @@ if (paginaActual === 'index.html' || paginaActual === '') {
     } else if (usuario.rol === 'MEDICO_ESPECIALISTA') {
         window.location.href = 'medico-especialista.html';
     } else if (usuario.rol === 'LABORATORIO') {
-        window.location.href = 'laboratorio.html'; // <--- AGREGAR ESTA LÍNEA
+        window.location.href = 'laboratorio.html';
+    } else if (usuario.rol === 'FARMACIA') {
+        window.location.href = 'farmacia.html';
     }
 }
 

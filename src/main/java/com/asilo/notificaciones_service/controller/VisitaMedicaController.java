@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -73,7 +74,14 @@ public class VisitaMedicaController {
                 rec.setMedicamento(recDto.getMedicamento());
                 rec.setDosis(recDto.getDosis());
                 rec.setTiempoAplicacion(recDto.getTiempoAplicacion());
-                rec.setCostoMedicamento(recDto.getCostoMedicamento() != null ? recDto.getCostoMedicamento() : 0.0);
+                
+                // Conversión explícita de Double a BigDecimal
+                if (recDto.getCostoMedicamento() != null) {
+                    rec.setCostoMedicamento(BigDecimal.valueOf(recDto.getCostoMedicamento()));
+                } else {
+                    rec.setCostoMedicamento(BigDecimal.ZERO);
+                }
+
                 rec.setEstado("PENDIENTE_ENTREGA");
                 recetaRepository.save(rec);
             }

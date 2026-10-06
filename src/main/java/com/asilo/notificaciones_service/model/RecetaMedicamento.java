@@ -1,9 +1,10 @@
 package com.asilo.notificaciones_service.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 
 @Entity
-@Table(name = "receta_medicamento", schema = "dbo")
+@Table(name = "receta_medicamento")
 public class RecetaMedicamento {
 
     @Id
@@ -11,7 +12,7 @@ public class RecetaMedicamento {
     @Column(name = "id_receta")
     private Long idReceta;
 
-    @Column(name = "id_visita", nullable = false)
+    @Column(name = "id_visita")
     private Long idVisita;
 
     @Column(name = "medicamento")
@@ -24,64 +25,32 @@ public class RecetaMedicamento {
     private String tiempoAplicacion;
 
     @Column(name = "costo_medicamento")
-    private Double costoMedicamento;
+    private BigDecimal costoMedicamento;
 
     @Column(name = "estado")
-    private String estado;
+    private String estado = "PENDIENTE_ENTREGA";
 
-    public Long getIdReceta() {
-        return idReceta;
-    }
+    public RecetaMedicamento() {}
 
-    public void setIdReceta(Long idReceta) {
-        this.idReceta = idReceta;
-    }
+    // Getters y Setters
+    public Long getIdReceta() { return idReceta; }
+    public void setIdReceta(Long idReceta) { this.idReceta = idReceta; }
 
-    public Long getIdVisita() {
-        return idVisita;
-    }
+    public Long getIdVisita() { return idVisita; }
+    public void setIdVisita(Long idVisita) { this.idVisita = idVisita; }
 
-    public void setIdVisita(Long idVisita) {
-        this.idVisita = idVisita;
-    }
+    public String getMedicamento() { return medicamento; }
+    public void setMedicamento(String medicamento) { this.medicamento = medicamento; }
 
-    public String getMedicamento() {
-        return medicamento;
-    }
+    public String getDosis() { return dosis; }
+    public void setDosis(String dosis) { this.dosis = dosis; }
 
-    public void setMedicamento(String medicamento) {
-        this.medicamento = medicamento;
-    }
+    public String getTiempoAplicacion() { return tiempoAplicacion; }
+    public void setTiempoAplicacion(String tiempoAplicacion) { this.tiempoAplicacion = tiempoAplicacion; }
 
-    public String getDosis() {
-        return dosis;
-    }
+    public BigDecimal getCostoMedicamento() { return costoMedicamento; }
+    public void setCostoMedicamento(BigDecimal costoMedicamento) { this.costoMedicamento = costoMedicamento; }
 
-    public void setDosis(String dosis) {
-        this.dosis = dosis;
-    }
-
-    public String getTiempoAplicacion() {
-        return tiempoAplicacion;
-    }
-
-    public void setTiempoAplicacion(String tiempoAplicacion) {
-        this.tiempoAplicacion = tiempoAplicacion;
-    }
-
-    public Double getCostoMedicamento() {
-        return costoMedicamento;
-    }
-
-    public void setCostoMedicamento(Double costoMedicamento) {
-        this.costoMedicamento = costoMedicamento;
-    }
-
-    public String getEstado() {
-        return estado;
-    }
-
-    public void setEstado(String estado) {
-        this.estado = estado;
-    }
+    public String getEstado() { return estado; }
+    public void setEstado(String estado) { this.estado = estado; }
 }
