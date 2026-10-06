@@ -15,8 +15,10 @@ if (usuario.rol === 'MEDICO_GENERAL' && paginaActual === 'index.html') {
     window.location.href = 'medico-general.html';
 } else if (usuario.rol === 'FUNDACION' && paginaActual === 'index.html') {
     window.location.href = 'fundacion.html';
-} else if (usuario.rol === 'ADMIN' && (paginaActual === 'medico-general.html' || paginaActual === 'fundacion.html')) {
-    window.location.href = 'index.html';
+} else if (usuario.rol === 'MEDICO_ESPECIALISTA' && paginaActual === 'index.html') {
+    window.location.href = 'medico-especialista.html';
+} else if (usuario.rol === 'ADMIN' && (paginaActual === 'medico-general.html' || paginaActual === 'fundacion.html' || paginaActual === 'medico-especialista.html')) {
+    // El Administrador puede navegar a donde prefiera o mantenerse en index.html
 }
 
 function cerrarSesion() {
