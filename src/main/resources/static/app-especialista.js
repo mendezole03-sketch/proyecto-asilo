@@ -20,7 +20,7 @@ function cerrarSesion() {
     window.location.href = 'login.html';
 }
 
-// Endpoints API Backend
+// Endpoints API Backend (Cambiar a 8080 o 8081 según tu Spring Boot)
 const API_URL_BASE = 'http://localhost:8081';
 const API_URL_SOLICITUDES = `${API_URL_BASE}/api/solicitudes`;
 const API_URL_PACIENTES = `${API_URL_BASE}/api/pacientes`;
@@ -80,7 +80,6 @@ function setButtonLoading(button, isLoading, originalText = 'Guardar') {
 /* ==========================================================================
    CARGA DE CITAS AGENDADAS PARA EL ESPECIALISTA
    ========================================================================== */
-
 async function cargarCitasEspecialista() {
     const tbody = document.getElementById('tabla-citas-especialista-body');
     if (!tbody) return;
@@ -90,29 +89,57 @@ async function cargarCitasEspecialista() {
     try {
         const solicitudes = await fetchData(API_URL_SOLICITUDES);
         
-        // Obtener ID de usuario en sesión
+        // Datos disponibles en sesión
+        const nombreUsuario = String(usuario.nombre || '').toUpperCase().trim();
         const idUsuarioSesion = usuario.idUsuario || usuario.id || usuario.id_usuario || usuario.idMedico;
+        const especialidadUsuario = String(usuario.especialidad || '').toUpperCase().trim();
 
-        console.log("=== CITAS ESPECIALISTA ===");
-        console.log("Usuario en sesión:", usuario);
-        console.log("ID Usuario detectado:", idUsuarioSesion);
+        console.log("=== DATOS DISPONIBLES ===");
+        console.log("Nombre Médico:", nombreUsuario);
+        console.log("Especialidad:", especialidadUsuario);
+        console.log("Solicitudes recibidas:", solicitudes);
 
-        // Filtrar solicitudes agendadas
         listaSolicitudesEspecialista = (solicitudes || []).filter(s => {
-            const esAgendada = String(s.estado || '').toUpperCase() === 'AGENDADA';
-            const idMedicoAsignado = s.idMedicoEspecialista || s.id_medico_especialista || s.idMedico;
-
-            if (idUsuarioSesion) {
-                return esAgendada && String(idMedicoAsignado) === String(idUsuarioSesion);
+            const estado = String(s.estado || '').toUpperCase();
+            if (estado === 'COMPLETADA' || estado === 'CANCELADA' || estado === 'FINALIZADA') {
+                return false;
             }
 
-            return esAgendada;
+            const idMedSolicitud = s.idMedicoEspecialista || s.id_medico_especialista || s.idMedico;
+            const espSolicitud = String(s.especialidad || s.tipoEspecialidad || s.nombreEspecialidad || '').toUpperCase().trim();
+            const nombreMedSolicitud = String(s.nombreMedico || s.medico || '').toUpperCase().trim();
+
+            // 1. Filtrar por ID de médico (Si el backend lo incluye)
+            if (idUsuarioSesion && idMedSolicitud && String(idMedSolicitud) === String(idUsuarioSesion)) {
+                return true;
+            }
+
+            // 2. Filtrar por Especialidad (Si el usuario en localStorage la incluye)
+            if (especialidadUsuario !== '' && espSolicitud !== '') {
+                if (espSolicitud.includes(especialidadUsuario) || especialidadUsuario.includes(espSolicitud)) {
+                    return true;
+                }
+            }
+
+            // 3. Coincidencia por Nombre del Médico asignado a la cita
+            if (nombreUsuario !== '' && nombreMedSolicitud !== '') {
+                if (nombreMedSolicitud.includes(nombreUsuario) || nombreUsuario.includes(nombreMedSolicitud)) {
+                    return true;
+                }
+            }
+
+            // 4. Si el usuario es ADMIN, ve todas las citas
+            if (usuario.rol === 'ADMIN') {
+                return true;
+            }
+
+            return false;
         });
 
         tbody.innerHTML = '';
 
         if (listaSolicitudesEspecialista.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No tiene citas agendadas actualmente.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No tiene citas agendadas asignadas a su perfil o especialidad.</td></tr>';
             return;
         }
 
@@ -120,17 +147,19 @@ async function cargarCitasEspecialista() {
 
         listaSolicitudesEspecialista.forEach(sol => {
             const idSol = sol.idSolicitud || sol.id_solicitud || sol.id;
+            const nombrePac = sol.nombrePaciente || sol.nombre_paciente || 'Paciente #' + (sol.idPaciente || '');
+            const motivoText = sol.motivo || sol.observaciones || 'Sin motivo registrado';
             
-            const fecha = sol.fechaCita || sol.fecha_cita || '';
-            const hora = sol.horaCita || sol.hora_cita || '';
+            const fecha = sol.fechaCita || sol.fecha_cita || sol.fecha || '';
+            const hora = sol.horaCita || sol.hora_cita || sol.hora || '';
             const fechaLimpia = fecha.includes('T') ? fecha.split('T')[0] : fecha.split(' ')[0];
-            const fechaHora = (fechaLimpia || hora) ? `${fechaLimpia} - ${hora}` : 'Sin asignar';
+            const fechaHora = (fechaLimpia || hora) ? `${fechaLimpia} ${hora}`.trim() : 'Pendiente de fecha';
 
             const fila = document.createElement('tr');
             fila.innerHTML = `
                 <td><span class="badge bg-secondary">#${escaparHTML(idSol)}</span></td>
-                <td><strong>${escaparHTML(sol.nombrePaciente || sol.nombre_paciente || 'Sin Nombre')}</strong></td>
-                <td>${escaparHTML(sol.motivo || 'Sin motivo')}</td>
+                <td><strong>${escaparHTML(nombrePac)}</strong></td>
+                <td>${escaparHTML(motivoText)}</td>
                 <td><span class="badge bg-info text-dark">${escaparHTML(fechaHora)}</span></td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-success fw-bold" onclick="abrirModalConsulta(${idSol})">
@@ -148,7 +177,6 @@ async function cargarCitasEspecialista() {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Error al conectar con el servidor.</td></tr>';
     }
 }
-
 /* ==========================================================================
    ATENCIÓN DE CONSULTA Y VER EXPEDIENTE
    ========================================================================== */
@@ -278,7 +306,7 @@ async function guardarVisitaMedica(evento) {
     const idPaciente = parseInt(document.getElementById('visita-idPaciente')?.value, 10);
     
     // Obtener ID del especialista logueado
-    const idEspecialistaRaw = usuario.idUsuario || usuario.id || usuario.id_usuario || usuario.idMedico || 19;
+    const idEspecialistaRaw = usuario.idUsuario || usuario.id || usuario.id_usuario || usuario.idMedico;
     const idMedicoEspecialista = parseInt(idEspecialistaRaw, 10);
 
     const diagnostico = document.getElementById('visita-diagnostico')?.value.trim();
@@ -319,7 +347,6 @@ async function guardarVisitaMedica(evento) {
         }
     });
 
-    // Estrategia DTO Plano para Spring Boot
     const payload = {
         idSolicitud: idSolicitud,
         idPaciente: idPaciente,
@@ -372,7 +399,7 @@ async function guardarVisitaMedica(evento) {
 
     } catch (error) {
         console.error('Error al registrar visita médica:', error);
-        Swal.fire('Error al procesar la visita', 'Revisa la consola del navegador o del IDE Java para más detalles.', 'error');
+        Swal.fire('Error al procesar la visita', 'Revisa la consola del navegador para más detalles.', 'error');
     } finally {
         setButtonLoading(btnSubmit, false, textoOriginal);
     }
@@ -383,18 +410,15 @@ async function guardarVisitaMedica(evento) {
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Nombre del médico en el navbar
     const infoUsuarioEl = document.getElementById('info-usuario');
     if (infoUsuarioEl && usuario && usuario.nombre) {
-        infoUsuarioEl.textContent = usuario.nombre;
+        infoUsuarioEl.textContent = `${usuario.nombre} ${usuario.especialidad ? '(' + usuario.especialidad + ')' : ''}`;
     }
 
-    // Event Listener para guardar la visita
     const formVisita = document.getElementById('formVisitaMedica');
     if (formVisita) {
         formVisita.addEventListener('submit', guardarVisitaMedica);
     }
 
-    // Cargar citas al iniciar
     cargarCitasEspecialista();
 });

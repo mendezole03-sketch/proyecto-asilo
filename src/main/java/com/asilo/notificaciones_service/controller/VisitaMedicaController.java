@@ -102,4 +102,10 @@ public class VisitaMedicaController {
     public ResponseEntity<List<VisitaMedica>> obtenerHistorialPaciente(@PathVariable Integer idPaciente) {
         return ResponseEntity.ok(visitaMedicaRepository.findByIdPaciente(idPaciente));
     }
+
+    // NUEVO: Permite consultar únicamente las visitas/citas del médico especialista logueado
+    @GetMapping("/medico/{idMedicoEspecialista}")
+    public ResponseEntity<List<VisitaMedica>> obtenerVisitasPorMedico(@PathVariable Integer idMedicoEspecialista) {
+        return ResponseEntity.ok(visitaMedicaRepository.findByIdMedicoEspecialista(idMedicoEspecialista));
+    }
 }

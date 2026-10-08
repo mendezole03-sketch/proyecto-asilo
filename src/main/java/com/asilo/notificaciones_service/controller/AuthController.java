@@ -31,9 +31,12 @@ public class AuthController {
             if (usuario.getContrasena().equals(contrasena) && usuario.getActivo()) {
                 Map<String, Object> respuesta = new HashMap<>();
                 respuesta.put("mensaje", "Login exitoso");
+                respuesta.put("idUsuario", usuario.getIdUsuario()); // <- ID agregado
                 respuesta.put("nombre", usuario.getNombre());
                 respuesta.put("correo", usuario.getCorreo());
                 respuesta.put("rol", usuario.getRol());
+                respuesta.put("especialidad", usuario.getEspecialidad()); // <- Especialidad agregada
+                
                 return ResponseEntity.ok(respuesta);
             }
         }
