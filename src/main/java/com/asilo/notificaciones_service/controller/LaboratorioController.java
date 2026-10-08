@@ -4,10 +4,12 @@ import com.asilo.notificaciones_service.dto.ExamenLaboratorioResponseDTO;
 import com.asilo.notificaciones_service.model.ExamenLaboratorio;
 import com.asilo.notificaciones_service.repository.ExamenLaboratorioRepository;
 import com.asilo.notificaciones_service.repository.PacienteRepository;
+import com.asilo.notificaciones_service.repository.SolicitudRepository;
 import com.asilo.notificaciones_service.repository.VisitaMedicaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -28,6 +30,9 @@ public class LaboratorioController {
 
     @Autowired
     private PacienteRepository pacienteRepository;
+
+    @Autowired
+    private SolicitudRepository solicitudRepository;
 
     /**
      * GET /api/examenes
@@ -54,7 +59,6 @@ public class LaboratorioController {
                         dto.setIdSolicitud(visita.getIdSolicitud());
                         dto.setIdPaciente(visita.getIdPaciente());
 
-                        // Buscar el paciente para obtener su nombre real
                         // Buscar el paciente para obtener su nombre real
                         if (visita.getIdPaciente() != null) {
                             pacienteRepository.findById(visita.getIdPaciente()).ifPresent(paciente -> {
@@ -112,6 +116,7 @@ public class LaboratorioController {
      * PUT /api/examenes/{id}
      */
     @PutMapping("/{id}")
+    @Transactional
     public ResponseEntity<?> actualizarExamen(@PathVariable("id") Long id, @RequestBody ExamenLaboratorio datosActualizados) {
         try {
             Optional<ExamenLaboratorio> optExamen = examenRepository.findById(id);
@@ -131,6 +136,28 @@ public class LaboratorioController {
             examenExistente.setEstado("REALIZADO");
 
             ExamenLaboratorio guardado = examenRepository.save(examenExistente);
+
+            // --- VERIFICACIÓN DE EXÁMENES PENDIENTES EN LA VISITA ---
+            if (guardado.getIdVisita() != null) {
+                visitaMedicaRepository.findById(guardado.getIdVisita()).ifPresent(visita -> {
+                    if (visita.getIdSolicitud() != null) {
+                        List<ExamenLaboratorio> todosLosExamenes = examenRepository.findByIdVisita(visita.getIdVisita());
+                        
+                        // Verificar si TODOS los exámenes de la visita ya están completados/realizados
+                        boolean quedanPendientes = todosLosExamenes.stream()
+                                .anyMatch(e -> !"REALIZADO".equalsIgnoreCase(e.getEstado()) && !"COMPLETADO".equalsIgnoreCase(e.getEstado()));
+
+                        // Si ya no quedan exámenes pendientes, la solicitud cambia a COMPLETADA
+                        if (!quedanPendientes) {
+                            solicitudRepository.findById(visita.getIdSolicitud()).ifPresent(sol -> {
+                                sol.setEstado("COMPLETADA");
+                                solicitudRepository.save(sol);
+                            });
+                        }
+                    }
+                });
+            }
+
             return ResponseEntity.ok(guardado);
 
         } catch (Exception e) {

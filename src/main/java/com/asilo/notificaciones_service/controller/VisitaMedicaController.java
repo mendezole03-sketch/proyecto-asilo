@@ -94,10 +94,10 @@ public class VisitaMedicaController {
         if (dto.getIdSolicitud() != null) {
             solicitudRepository.findById(dto.getIdSolicitud()).ifPresent(sol -> {
                 if (tieneExamenes) {
-                    // Si se ordenaron exámenes, la cita queda en AGENDADA esperando los resultados del laboratorio
-                    sol.setEstado("AGENDADA");
+                    // Si se ordenaron exámenes, la cita pasa a EN_LABORATORIO
+                    sol.setEstado("EN_LABORATORIO");
                 } else {
-                    // Si solo se registraron medicamentos o diagnóstico sin exámenes, la consulta finaliza
+                    // Si solo se registraron medicamentos o diagnóstico sin exámenes, la consulta pasa a COMPLETADA
                     sol.setEstado("COMPLETADA");
                 }
                 solicitudRepository.save(sol);
@@ -112,7 +112,7 @@ public class VisitaMedicaController {
         return ResponseEntity.ok(visitaMedicaRepository.findByIdPaciente(idPaciente));
     }
 
-    // NUEVO: Permite consultar únicamente las visitas/citas del médico especialista logueado
+    // Permite consultar únicamente las visitas/citas del médico especialista logueado
     @GetMapping("/medico/{idMedicoEspecialista}")
     public ResponseEntity<List<VisitaMedica>> obtenerVisitasPorMedico(@PathVariable Integer idMedicoEspecialista) {
         return ResponseEntity.ok(visitaMedicaRepository.findByIdMedicoEspecialista(idMedicoEspecialista));

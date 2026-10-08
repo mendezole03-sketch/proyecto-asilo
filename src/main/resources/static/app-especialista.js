@@ -81,6 +81,9 @@ function setButtonLoading(button, isLoading, originalText = 'Guardar') {
 /* ==========================================================================
    CARGA DE CITAS AGENDADAS PARA EL ESPECIALISTA
    ========================================================================== */
+/* ==========================================================================
+   CARGA DE CITAS AGENDADAS PARA EL ESPECIALISTA
+   ========================================================================== */
 async function cargarCitasEspecialista() {
     const tbody = document.getElementById('tabla-citas-especialista-body');
     if (!tbody) return;
@@ -95,14 +98,11 @@ async function cargarCitasEspecialista() {
         const idUsuarioSesion = usuario.idUsuario || usuario.id || usuario.id_usuario || usuario.idMedico;
         const especialidadUsuario = String(usuario.especialidad || '').toUpperCase().trim();
 
-        console.log("=== DATOS DISPONIBLES ===");
-        console.log("Nombre Médico:", nombreUsuario);
-        console.log("Especialidad:", especialidadUsuario);
-        console.log("Solicitudes recibidas:", solicitudes);
-
         listaSolicitudesEspecialista = (solicitudes || []).filter(s => {
             const estado = String(s.estado || '').toUpperCase();
-            if (estado === 'COMPLETADA' || estado === 'CANCELADA' || estado === 'FINALIZADA') {
+            
+            // Solo descartamos las CANCELADAS
+            if (estado === 'CANCELADA') {
                 return false;
             }
 
@@ -110,19 +110,19 @@ async function cargarCitasEspecialista() {
             const espSolicitud = String(s.especialidad || s.tipoEspecialidad || s.nombreEspecialidad || '').toUpperCase().trim();
             const nombreMedSolicitud = String(s.nombreMedico || s.medico || '').toUpperCase().trim();
 
-            // 1. Filtrar por ID de médico (Si el backend lo incluye)
+            // 1. Filtrar por ID de médico
             if (idUsuarioSesion && idMedSolicitud && String(idMedSolicitud) === String(idUsuarioSesion)) {
                 return true;
             }
 
-            // 2. Filtrar por Especialidad (Si el usuario en localStorage la incluye)
+            // 2. Filtrar por Especialidad
             if (especialidadUsuario !== '' && espSolicitud !== '') {
                 if (espSolicitud.includes(especialidadUsuario) || especialidadUsuario.includes(espSolicitud)) {
                     return true;
                 }
             }
 
-            // 3. Coincidencia por Nombre del Médico asignado a la cita
+            // 3. Coincidencia por Nombre del Médico
             if (nombreUsuario !== '' && nombreMedSolicitud !== '') {
                 if (nombreMedSolicitud.includes(nombreUsuario) || nombreUsuario.includes(nombreMedSolicitud)) {
                     return true;
@@ -150,11 +150,38 @@ async function cargarCitasEspecialista() {
             const idSol = sol.idSolicitud || sol.id_solicitud || sol.id;
             const nombrePac = sol.nombrePaciente || sol.nombre_paciente || 'Paciente #' + (sol.idPaciente || '');
             const motivoText = sol.motivo || sol.observaciones || 'Sin motivo registrado';
-            
+            const estadoSol = String(sol.estado || 'PENDIENTE').toUpperCase();
+
             const fecha = sol.fechaCita || sol.fecha_cita || sol.fecha || '';
             const hora = sol.horaCita || sol.hora_cita || sol.hora || '';
             const fechaLimpia = fecha.includes('T') ? fecha.split('T')[0] : fecha.split(' ')[0];
             const fechaHora = (fechaLimpia || hora) ? `${fechaLimpia} ${hora}`.trim() : 'Pendiente de fecha';
+
+            
+                // --- LÓGICA CORRECTA DEL BOTÓN Y ESTADO ---
+                let botonAccion = '';
+
+                if (estadoSol === 'COMPLETADA' || estadoSol === 'FINALIZADA') {
+                    // La consulta ya terminó
+                    botonAccion = `
+                        <button class="btn btn-sm btn-secondary fw-bold" disabled>
+                            <i class="bi bi-check-circle me-1"></i> Atendida
+                        </button>`;
+
+                } else if (estadoSol === 'EN_LABORATORIO') {
+                    // La consulta ya fue atendida pero se enviaron exámenes a laboratorio
+                    botonAccion = `
+                        <button class="btn btn-sm btn-info text-dark fw-bold" disabled title="Esperando resultados de laboratorio">
+                            <i class="bi bi-hourglass-split me-1"></i> Pendiente Lab
+                        </button>`;
+
+                } else {
+                    // Citas nuevas recién agendadas (AGENDADA, PENDIENTE, APROBADA)
+                    botonAccion = `
+                        <button class="btn btn-sm btn-success fw-bold" onclick="abrirModalConsulta(${idSol})">
+                            <i class="bi bi-stethoscope me-1"></i> Atender Paciente
+                        </button>`;
+                }
 
             const fila = document.createElement('tr');
             fila.innerHTML = `
@@ -162,11 +189,7 @@ async function cargarCitasEspecialista() {
                 <td><strong>${escaparHTML(nombrePac)}</strong></td>
                 <td>${escaparHTML(motivoText)}</td>
                 <td><span class="badge bg-info text-dark">${escaparHTML(fechaHora)}</span></td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-success fw-bold" onclick="abrirModalConsulta(${idSol})">
-                        <i class="bi bi-stethoscope me-1"></i> Atender Paciente
-                    </button>
-                </td>
+                <td class="text-center">${botonAccion}</td>
             `;
             fragmento.appendChild(fila);
         });
@@ -178,7 +201,6 @@ async function cargarCitasEspecialista() {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Error al conectar con el servidor.</td></tr>';
     }
 }
-
 /* ==========================================================================
    CONSULTA DE RESULTADOS DE LABORATORIO
    ========================================================================== */
