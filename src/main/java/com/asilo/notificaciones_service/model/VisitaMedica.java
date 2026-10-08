@@ -2,6 +2,8 @@ package com.asilo.notificaciones_service.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "visita_medica", schema = "dbo")
@@ -35,6 +37,32 @@ public class VisitaMedica {
 
     @Column(name = "fecha_registro")
     private LocalDateTime fechaRegistro;
+
+    // --- RELACIONES CON JOINCOLUMN (SIN ERRORES DE COMPILACIÓN) ---
+
+    // Relación con Recetas / Medicamentos de esta visita
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "id_visita")
+    private List<RecetaMedicamento> medicamentos = new ArrayList<>();
+
+    // Relación con Exámenes de Laboratorio ordenados en esta visita
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "id_visita")
+    private List<ExamenLaboratorio> examenes = new ArrayList<>();
+
+    // --- CONSTRUCTORES ---
+
+    public VisitaMedica() {
+    }
+
+    public VisitaMedica(Long idSolicitud, Integer idPaciente, Integer idMedicoEspecialista, String diagnostico, String observaciones, Double costoConsulta) {
+        this.idSolicitud = idSolicitud;
+        this.idPaciente = idPaciente;
+        this.idMedicoEspecialista = idMedicoEspecialista;
+        this.diagnostico = diagnostico;
+        this.observaciones = observaciones;
+        this.costoConsulta = costoConsulta;
+    }
 
     @PrePersist
     public void prePersist() {
@@ -115,5 +143,21 @@ public class VisitaMedica {
 
     public void setFechaRegistro(LocalDateTime fechaRegistro) {
         this.fechaRegistro = fechaRegistro;
+    }
+
+    public List<RecetaMedicamento> getMedicamentos() {
+        return medicamentos;
+    }
+
+    public void setMedicamentos(List<RecetaMedicamento> medicamentos) {
+        this.medicamentos = medicamentos;
+    }
+
+    public List<ExamenLaboratorio> getExamenes() {
+        return examenes;
+    }
+
+    public void setExamenes(List<ExamenLaboratorio> examenes) {
+        this.examenes = examenes;
     }
 }

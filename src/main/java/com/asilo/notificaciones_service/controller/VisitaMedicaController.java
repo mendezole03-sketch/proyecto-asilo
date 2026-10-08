@@ -54,8 +54,11 @@ public class VisitaMedicaController {
 
         VisitaMedica visitaGuardada = visitaMedicaRepository.save(visita);
 
+        // Flag auxiliar para saber si ordenaron exámenes
+        boolean tieneExamenes = dto.getExamenes() != null && !dto.getExamenes().isEmpty();
+
         // 2. Guardar Exámenes de Laboratorio si se solicitaron
-        if (dto.getExamenes() != null && !dto.getExamenes().isEmpty()) {
+        if (tieneExamenes) {
             for (VisitaMedicaDTO.ExamenDTO exDto : dto.getExamenes()) {
                 ExamenLaboratorio ex = new ExamenLaboratorio();
                 ex.setIdVisita(visitaGuardada.getIdVisita());
@@ -87,10 +90,16 @@ public class VisitaMedicaController {
             }
         }
 
-        // 4. Actualizar estado de la Solicitud a COMPLETADA
+        // 4. Actualizar estado de la Solicitud condicionalmente
         if (dto.getIdSolicitud() != null) {
             solicitudRepository.findById(dto.getIdSolicitud()).ifPresent(sol -> {
-                sol.setEstado("COMPLETADA");
+                if (tieneExamenes) {
+                    // Si se ordenaron exámenes, la cita queda en AGENDADA esperando los resultados del laboratorio
+                    sol.setEstado("AGENDADA");
+                } else {
+                    // Si solo se registraron medicamentos o diagnóstico sin exámenes, la consulta finaliza
+                    sol.setEstado("COMPLETADA");
+                }
                 solicitudRepository.save(sol);
             });
         }

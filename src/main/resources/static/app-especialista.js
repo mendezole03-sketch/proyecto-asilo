@@ -20,11 +20,12 @@ function cerrarSesion() {
     window.location.href = 'login.html';
 }
 
-// Endpoints API Backend (Cambiar a 8080 o 8081 según tu Spring Boot)
+// Endpoints API Backend
 const API_URL_BASE = 'http://localhost:8081';
 const API_URL_SOLICITUDES = `${API_URL_BASE}/api/solicitudes`;
 const API_URL_PACIENTES = `${API_URL_BASE}/api/pacientes`;
 const API_URL_VISITAS = `${API_URL_BASE}/api/visitas`;
+const API_URL_EXAMENES = `${API_URL_BASE}/api/examenes`;
 
 let listaSolicitudesEspecialista = [];
 let pacienteActualSeleccionado = null;
@@ -177,6 +178,57 @@ async function cargarCitasEspecialista() {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Error al conectar con el servidor.</td></tr>';
     }
 }
+
+/* ==========================================================================
+   CONSULTA DE RESULTADOS DE LABORATORIO
+   ========================================================================== */
+async function cargarLaboratoriosDeVisita(idVisita) {
+    const contenedor = document.getElementById('contenedor-laboratorios-modal');
+    if (!contenedor) return;
+
+    contenedor.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"></div> Consultando exámenes de laboratorio...';
+
+    try {
+        const examenes = await fetchData(`${API_URL_EXAMENES}/visita/${idVisita}`);
+
+        if (examenes && examenes.length > 0) {
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Examen</th>
+                                <th>Estado</th>
+                                <th>Resultado</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+            examenes.forEach(ex => {
+                let badgeClass = 'bg-warning text-dark';
+                if (ex.estado === 'REALIZADO') badgeClass = 'bg-success';
+                if (ex.estado === 'CANCELADO') badgeClass = 'bg-danger';
+
+                html += `
+                    <tr>
+                        <td><strong>${escaparHTML(ex.nombreExamen || 'Sin Nombre')}</strong></td>
+                        <td><span class="badge ${badgeClass}">${escaparHTML(ex.estado || 'ORDENADO')}</span></td>
+                        <td>${escaparHTML(ex.resultado || 'Resultado no registrado aún')}</td>
+                    </tr>`;
+            });
+
+            html += `</tbody></table></div>`;
+            contenedor.innerHTML = html;
+        } else {
+            contenedor.innerHTML = '<div class="alert alert-light border text-muted py-2 small mb-0">No hay exámenes de laboratorio registrados para esta cita.</div>';
+        }
+
+    } catch (error) {
+        console.error("Error al cargar exámenes de laboratorio:", error);
+        contenedor.innerHTML = '<div class="alert alert-danger py-2 small mb-0">No se pudieron cargar los datos del laboratorio.</div>';
+    }
+}
+
 /* ==========================================================================
    ATENCIÓN DE CONSULTA Y VER EXPEDIENTE
    ========================================================================== */
@@ -188,9 +240,10 @@ async function abrirModalConsulta(idSolicitud) {
         return;
     }
 
+    const idSolActual = sol.idSolicitud || sol.id_solicitud || sol.id;
     const idPac = sol.idPaciente || sol.id_paciente;
 
-    document.getElementById('visita-idSolicitud').value = sol.idSolicitud || sol.id_solicitud || sol.id;
+    document.getElementById('visita-idSolicitud').value = idSolActual;
     document.getElementById('visita-idPaciente').value = idPac;
     document.getElementById('lbl-nombre-paciente').textContent = sol.nombrePaciente || sol.nombre_paciente || 'N/A';
     document.getElementById('lbl-motivo-remision').textContent = sol.motivo || 'N/A';
@@ -201,6 +254,9 @@ async function abrirModalConsulta(idSolicitud) {
     } catch (e) {
         console.warn('No se pudo obtener la ficha completa del paciente:', e);
     }
+
+    // Cargar exámenes de laboratorio vinculados a esta visita/solicitud
+    cargarLaboratoriosDeVisita(idSolActual);
 
     // Limpiar campos del formulario
     document.getElementById('visita-diagnostico').value = '';
