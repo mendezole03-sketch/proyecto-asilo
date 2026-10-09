@@ -16,9 +16,12 @@ function cerrarSesion() {
 }
 
 const API_URL_BASE = 'http://localhost:8081';
+const API_URL_PACIENTES = `${API_URL_BASE}/api/pacientes`;
+const API_URL_FAMILIARES = `${API_URL_BASE}/api/familiares`;
 const API_URL_CAJA = `${API_URL_BASE}/api/caja`; 
 const API_URL_DONACIONES = `${API_URL_BASE}/api/donaciones`; 
-const API_URL_GASTOS = `${API_URL_BASE}/api/gastos`;         
+const API_URL_GASTOS = `${API_URL_BASE}/api/gastos`;   
+const API_URL_CUOTAS = `${API_URL_BASE}/api/cuotas`;
 
 function escaparHTML(str) {
     if (str === null || str === undefined) return '';
@@ -284,6 +287,148 @@ async function registrarGasto(evento) {
         Swal.fire('Error', 'No se pudo registrar el gasto en el servidor.', 'error');
     }
 }
+/* ==========================================================================
+   3. MÓDULO: CUOTAS MENSUALES
+   ========================================================================== */
+    async function cargarSelectsCuotas() {
+    const selectPaciente = document.getElementById('selectPacienteCuota');
+    const selectFamiliar = document.getElementById('selectFamiliarCuota');
+
+    if (!selectPaciente || !selectFamiliar) return;
+
+    try {
+        // 1. Cargar Pacientes y Familiares desde el backend
+        const pacientes = await fetchData(API_URL_PACIENTES);
+        const familiares = await fetchData(API_URL_FAMILIARES);
+
+        // Llenar selector de Pacientes y guardar el ID del familiar asociado en un atributo data
+        selectPaciente.innerHTML = '<option value="">Seleccione un paciente...</option>';
+        if (pacientes) {
+            pacientes.forEach(p => {
+                // Como tu entidad Paciente tiene un objeto 'familiar', extraemos su id de forma segura
+                const idFamAsociado = p.familiar ? (p.familiar.idFamiliar || p.familiar.id) : '';
+                selectPaciente.innerHTML += `<option value="${p.idPaciente}" data-familiar="${idFamAsociado}">${escaparHTML(p.nombre)}</option>`;
+            });
+        }
+
+        // Llenar selector de Familiares con todas las opciones disponibles
+        selectFamiliar.innerHTML = '<option value="">Seleccione un familiar...</option>';
+        if (familiares) {
+            familiares.forEach(f => {
+                const idFam = f.idFamiliar || f.id; 
+                selectFamiliar.innerHTML += `<option value="${idFam}">${escaparHTML(f.nombre)}</option>`;
+            });
+        }
+
+        // 2. Evento inteligente: al cambiar de paciente, selecciona automáticamente su familiar responsable
+        selectPaciente.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const idFamiliarAsociado = selectedOption.getAttribute('data-familiar');
+
+            if (!this.value) {
+                selectFamiliar.value = "";
+                return;
+            }
+
+            if (idFamiliarAsociado && idFamiliarAsociado !== "null" && idFamiliarAsociado !== "undefined") {
+                // Asigna y selecciona automáticamente al familiar correspondiente
+                selectFamiliar.value = idFamiliarAsociado;
+            } else {
+                selectFamiliar.value = "";
+            }
+        });
+
+    } catch (error) {
+        console.error("Error al cargar selects para cuotas:", error);
+    }
+}
+async function cargarCuotasMensuales() {
+    const tbody = document.getElementById('tablaCuotasMensuales');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
+
+    try {
+        const cuotas = await fetchData(API_URL_CUOTAS);
+        tbody.innerHTML = '';
+        if (!cuotas || cuotas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No hay cuotas mensuales registradas.</td></tr>';
+            return;
+        }
+
+        cuotas.forEach(c => {
+            const esPagado = c.estado && c.estado.toLowerCase() === 'pagado';
+            let botonAccion = esPagado 
+                ? `<button class="btn btn-sm btn-secondary" disabled>✔️ Pagado</button>`
+                : `<button class="btn btn-sm btn-success" onclick="pagarCuotaMensual(${c.idCuota})">💵 Cobrar Cuota</button>`;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${escaparHTML(c.paciente?.nombre || 'Paciente #' + (c.idPaciente || ''))}</td>
+                    <td>${escaparHTML(c.familiar?.nombre || 'Familiar #' + (c.idFamiliar || ''))}</td>
+                    <td><span class="badge bg-light text-dark border">${escaparHTML(c.mesCorrespondiente)}</span></td>
+                    <td class="fw-bold text-success">Q ${Number(c.monto || 0).toFixed(2)}</td>
+                    <td><span class="badge ${esPagado ? 'bg-success' : 'bg-warning text-dark'}">${escaparHTML(c.estado || 'Pendiente')}</span></td>
+                    <td class="text-center">${botonAccion}</td>
+                </tr>
+            `;
+        });
+    } catch (error) {
+        console.error("Error al cargar cuotas mensuales:", error);
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Error al conectar con el servidor.</td></tr>';
+    }
+}
+
+async function registrarCuotaMensualForm(evento) {
+    evento.preventDefault();
+
+    const cuotaPayload = {
+        idPaciente: parseInt(document.getElementById('selectPacienteCuota').value),
+        idFamiliar: parseInt(document.getElementById('selectFamiliarCuota').value),
+        mesCorrespondiente: document.getElementById('mesCuota').value.trim(),
+        monto: parseFloat(document.getElementById('montoCuota').value),
+        estado: 'Pendiente'
+    };
+
+    try {
+        await fetchData(API_URL_CUOTAS, {
+            method: 'POST',
+            body: JSON.stringify(cuotaPayload)
+        });
+
+        Swal.fire('¡Éxito!', 'Cuota mensual registrada correctamente.', 'success');
+        document.getElementById('formCuota').reset();
+        cargarCuotasMensuales();
+
+    } catch (error) {
+        console.error('Error al registrar cuota:', error);
+        Swal.fire('Error', 'No se pudo registrar la cuota mensual en el servidor.', 'error');
+    }
+}
+
+async function pagarCuotaMensual(idCuota) {
+    const result = await Swal.fire({
+        title: '¿Confirmar cobro de mensualidad?',
+        text: "¿Deseas registrar el pago de esta cuota mensual?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#dc3545',
+        confirmButtonText: 'Sí, cobrar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            await fetchData(`${API_URL_CUOTAS}/${idCuota}/pagar`, { method: 'PUT' });
+            Swal.fire({ icon: 'success', title: '¡Cuota cobrada!', text: 'La mensualidad ha sido marcada como pagada correctamente.', timer: 1500, showConfirmButton: false });
+            cargarCuotasMensuales();
+        } catch (error) {
+            console.error("Error al procesar el pago de la cuota:", error);
+            Swal.fire('Error', 'No se pudo procesar el pago de la cuota en el servidor.', 'error');
+        }
+    }
+}
 
 /* ==========================================================================
    INICIALIZACIÓN AL CARGAR LA PÁGINA
@@ -296,4 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarCuentasMedicas();
     cargarHistorialDonaciones();
     cargarHistorialGastos();
+    cargarSelectsCuotas();
+    cargarCuotasMensuales();
+    
 });

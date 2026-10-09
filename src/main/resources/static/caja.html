@@ -19,7 +19,7 @@
     <!-- Navbar Superior con Usuario y Botón Cerrar Sesión -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">💰 Caja y Donaciones - Asilo Cabeza de Algodón</a>
+            <a class="navbar-brand" href="#">💰 Caja y Finanzas - Asilo Cabeza de Algodón</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -37,21 +37,26 @@
     </nav>
 
     <div class="container my-4">
-        <!-- Navegación por pestañas internas del módulo -->
+        <!-- Navegación por 4 pestañas independientes -->
         <ul class="nav nav-tabs mb-4" id="cajaTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active fw-bold" id="cuentas-tab" data-bs-toggle="tab" data-bs-target="#cuentas-content" type="button" role="tab">
-                    <i class="bi bi-file-earmark-text me-1"></i> Cuentas Médicas y Familiares
+                    <i class="bi bi-file-earmark-text me-1"></i> Cuentas Médicas
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link fw-bold" id="donaciones-tab" data-bs-toggle="tab" data-bs-target="#donaciones-content" type="button" role="tab">
-                    <i class="bi bi-gift me-1"></i> Donaciones y Cuotas
+                    <i class="bi bi-gift me-1"></i> Donaciones
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="cuotas-tab" data-bs-toggle="tab" data-bs-target="#cuotas-content" type="button" role="tab">
+                    <i class="bi bi-cash-coin me-1"></i> Cuotas Mensuales
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link fw-bold" id="gastos-tab" data-bs-toggle="tab" data-bs-target="#gastos-content" type="button" role="tab">
-                    <i class="bi bi-receipt me-1"></i> Control de Gastos (Egresos)
+                    <i class="bi bi-receipt me-1"></i> Control de Gastos
                 </button>
             </li>
         </ul>
@@ -82,7 +87,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="tablaCuentasMedicas">
-                                    <!-- Se llena dinámicamente desde app-caja.js -->
+                                    <!-- Dinámico -->
                                 </tbody>
                             </table>
                         </div>
@@ -90,7 +95,7 @@
                 </div>
             </div>
 
-            <!-- PESTAÑA 2: DONACIONES Y CUOTAS -->
+            <!-- PESTAÑA 2: DONACIONES (INDEPENDIENTE) -->
             <div class="tab-pane fade" id="donaciones-content" role="tabpanel">
                 <div class="row">
                     <div class="col-md-5">
@@ -156,7 +161,76 @@
                 </div>
             </div>
 
-            <!-- PESTAÑA 3: GASTOS Y EGRESOS -->
+            <!-- PESTAÑA 3: CUOTAS MENSUALES (INDEPENDIENTE Y CON FORMULARIO) -->
+            <div class="tab-pane fade" id="cuotas-content" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <i class="bi bi-calendar-plus me-1"></i> Registrar Cuota Mensual
+                            </div>
+                            <div class="card-body">
+                                <form id="formCuota" onsubmit="registrarCuotaMensualForm(event)">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Paciente (Residente):</label>
+                                        <select id="selectPacienteCuota" class="form-select" required>
+                                            <option value="">Cargando pacientes...</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Familiar Responsable:</label>
+                                        <select id="selectFamiliarCuota" class="form-select" required>
+                                            <option value="">Cargando familiares...</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Mes Correspondiente:</label>
+                                        <input type="text" id="mesCuota" class="form-control" required placeholder="Ej. Noviembre 2026">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Monto (Q):</label>
+                                        <input type="number" step="0.01" min="0" id="montoCuota" class="form-control" required placeholder="0.00">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100 fw-bold">
+                                        <i class="bi bi-save me-1"></i> Guardar Cuota Mensual
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-cash-coin me-1"></i> Control de Cuotas Mensuales de Residentes</span>
+                                <button class="btn btn-sm btn-light fw-bold" onclick="cargarCuotasMensuales()">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                    <table class="table table-sm table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Paciente</th>
+                                                <th>Familiar</th>
+                                                <th>Mes</th>
+                                                <th>Monto</th>
+                                                <th>Estado</th>
+                                                <th class="text-center">Acción</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tablaCuotasMensuales">
+                                            <!-- Dinámico -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PESTAÑA 4: CONTROL DE GASTOS Y EGRESOS -->
             <div class="tab-pane fade" id="gastos-content" role="tabpanel">
                 <div class="row">
                     <div class="col-md-5">
