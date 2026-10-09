@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Reportes - Asilo Cabeza de Algodón</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-light">
+
+    <!-- Barra de Navegación del Módulo de Reportes -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">📊 Módulo de Reportes - Asilo</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="cambiarReporte('costos-citas')">Costos por Cita</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="cambiarReporte('ficha-medica')">Ficha Médica</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="cambiarReporte('cobros-fecha')">Cobros por Fecha</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="cambiarReporte('pagos-fundacion')">Pagos y Donaciones</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="cambiarReporte('examenes-medicamentos')">Exámenes y Medicamentos</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center text-white">
+                    <a href="index.html" class="btn btn-outline-light btn-sm me-3">Volver al Inicio / Admin</a>
+                    <span id="nombre-usuario-logueado" class="me-3">Cargando...</span>
+                    <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        
+        <!-- SECCIÓN 1: Reporte de Costos por Cita -->
+        <div id="seccion-costos-citas" class="seccion-reporte">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="m-0">📊 Informe Estadístico: Costos por Cita por Paciente</h3>
+                <button class="btn btn-primary shadow-sm" onclick="cargarReporteCostosCitas()">↻ Actualizar Datos</button>
+            </div>
+            <div class="card card-custom shadow-sm mb-5">
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID Visita</th>
+                                <th>Paciente</th>
+                                <th>Fecha</th>
+                                <th>Costo Consulta</th>
+                                <th>Exámenes</th>
+                                <th>Medicamentos</th>
+                                <th>Costo Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaReporteCostos">
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">Cargando reporte de costos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: Reporte de Ficha Médica y Análisis -->
+        <div id="seccion-ficha-medica" class="seccion-reporte d-none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="m-0">📋 Reporte de Ficha Médica y Análisis (Motivo de Reclusión)</h3>
+                <button class="btn btn-primary shadow-sm" onclick="cargarReporteFichaMedica()">↻ Actualizar Datos</button>
+            </div>
+            <div class="card card-custom shadow-sm mb-5">
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Paciente</th>
+                                <th>Ingreso</th>
+                                <th>Diagnóstico</th>
+                                <th>Motivo de Reclusión</th>
+                                <th>Psicopatologías</th>
+                                <th>Medicamentos de Cajón</th>
+                                <th>Familiar / Teléfono</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaReporteFichaMedica">
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">Haz clic en actualizar para cargar la ficha médica...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 3: Reporte de cobros por rango de fecha -->
+        <div id="seccion-cobros-fecha" class="seccion-reporte d-none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="m-0">💰 Reporte de Cobros por Rango de Fecha</h3>
+            </div>
+            <div class="card card-custom shadow-sm mb-5">
+                <div class="card-body">
+                    <p class="text-muted">Filtros y detalle de cobros con gastos médicos.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 4: Reporte de pagos a la fundación y donaciones -->
+        <div id="seccion-pagos-fundacion" class="seccion-reporte d-none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="m-0">🏛️ Reporte de Pagos a la Fundación y Entradas/Donaciones</h3>
+            </div>
+            <div class="card card-custom shadow-sm mb-5">
+                <div class="card-body">
+                    <p class="text-muted">Detalle de ingresos y donaciones registradas.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 5: Reporte de exámenes médicos y medicamentos aplicados -->
+        <div id="seccion-examenes-medicamentos" class="seccion-reporte d-none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="m-0">🩺 Reporte de Exámenes y Medicamentos Aplicados</h3>
+            </div>
+            <div class="card card-custom shadow-sm mb-5">
+                <div class="card-body">
+                    <p class="text-muted">Historial por residente.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="app-reportes.js"></script>
+</body>
+</html>
