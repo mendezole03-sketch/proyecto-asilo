@@ -2,6 +2,7 @@ package com.asilo.notificaciones_service.controller;
 
 import com.asilo.notificaciones_service.dto.ReporteCitaCostosDTO;
 import com.asilo.notificaciones_service.dto.ReporteFichaMedicaDTO;
+import com.asilo.notificaciones_service.dto.ReporteCobrosFechaDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -83,6 +84,66 @@ public class ReporteController {
                     rs.getString("telefono_familiar")
                 );
                 reporte.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+
+        return ResponseEntity.ok(reporte);
+    }
+
+    @GetMapping("/cobros-fecha")
+    public ResponseEntity<List<ReporteCobrosFechaDTO>> obtenerCobrosPorFecha(
+            @RequestParam(required = false) String fechaInicio,
+            @RequestParam(required = false) String fechaFin) {
+        
+        List<ReporteCobrosFechaDTO> reporte = new ArrayList<>();
+        
+        StringBuilder sql = new StringBuilder(
+            "SELECT v.id_visita, p.nombre AS nombre_paciente, v.fecha_registro, v.costo_consulta, v.estado_pago, " +
+            "ISNULL((SELECT SUM(e.costo_examen) FROM examen_laboratorio e WHERE e.id_visita = v.id_visita), 0) AS costo_examenes, " +
+            "ISNULL((SELECT SUM(m.costo_medicamento) FROM receta_medicamento m WHERE m.id_visita = v.id_visita), 0) AS costo_medicamentos, " +
+            "(v.costo_consulta + " +
+            "ISNULL((SELECT SUM(e.costo_examen) FROM examen_laboratorio e WHERE e.id_visita = v.id_visita), 0) + " +
+            "ISNULL((SELECT SUM(m.costo_medicamento) FROM receta_medicamento m WHERE m.id_visita = v.id_visita), 0)) AS costo_total " +
+            "FROM visita_medica v " +
+            "JOIN Paciente p ON v.id_paciente = p.idPaciente WHERE 1=1"
+        );
+
+        if (fechaInicio != null && !fechaInicio.isEmpty()) {
+            sql.append(" AND v.fecha_registro >= ?");
+        }
+        if (fechaFin != null && !fechaFin.isEmpty()) {
+            sql.append(" AND v.fecha_registro <= ?");
+        }
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+            int paramIndex = 1;
+            if (fechaInicio != null && !fechaInicio.isEmpty()) {
+                stmt.setString(paramIndex++, fechaInicio);
+            }
+            if (fechaFin != null && !fechaFin.isEmpty()) {
+                stmt.setString(paramIndex++, fechaFin);
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    ReporteCobrosFechaDTO dto = new ReporteCobrosFechaDTO(
+                        rs.getLong("id_visita"),
+                        rs.getString("nombre_paciente"),
+                        rs.getDate("fecha_registro") != null ? rs.getDate("fecha_registro").toLocalDate() : null,
+                        rs.getDouble("costo_consulta"),
+                        rs.getDouble("costo_examenes"),
+                        rs.getDouble("costo_medicamentos"),
+                        rs.getDouble("costo_total"),
+                        rs.getString("estado_pago")
+                    );
+                    reporte.add(dto);
+                }
             }
 
         } catch (Exception e) {

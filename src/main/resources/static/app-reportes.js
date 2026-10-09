@@ -26,6 +26,12 @@ function cambiarReporte(seccionId) {
         cargarReporteCostosCitas();
     } else if (seccionId === 'ficha-medica') {
         cargarReporteFichaMedica();
+    } else if (seccionId === 'cobros-fecha') {
+        cargarReporteCobrosFecha();
+    } else if (seccionId === 'pagos-fundacion') {
+        // Próximamente: cargarReportePagosFundacion();
+    } else if (seccionId === 'examenes-medicamentos') {
+        // Próximamente: cargarReporteExamenesMedicamentos();
     }
 }
 
@@ -103,6 +109,54 @@ async function cargarReporteFichaMedica() {
         const tbody = document.getElementById('tablaReporteFichaMedica');
         if (tbody) {
             tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">Error al cargar la ficha médica.</td></tr>`;
+        }
+    }
+}
+
+// Cargar el Reporte de Cobros por Rango de Fecha
+async function cargarReporteCobrosFecha() {
+    const fechaInicio = document.getElementById('filtro-fecha-inicio').value;
+    const fechaFin = document.getElementById('filtro-fecha-fin').value;
+
+    let url = `${API_URL_REPORTES}/cobros-fecha?`;
+    if (fechaInicio) url += `fechaInicio=${fechaInicio}&`;
+    if (fechaFin) url += `fechaFin=${fechaFin}`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Error al conectar con el servidor');
+        
+        const data = await response.json();
+        const tbody = document.getElementById('tablaReporteCobros');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+        
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No se encontraron cobros en el rango de fechas seleccionado.</td></tr>`;
+            return;
+        }
+
+        data.forEach(item => {
+            const badgeClase = item.estadoPago === 'PAGADO' ? 'bg-success' : 'bg-warning text-dark';
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.idVisita}</td>
+                    <td><strong>${item.nombrePaciente ? escaparHTML(item.nombrePaciente) : 'N/A'}</strong></td>
+                    <td>${item.fechaVisita || 'N/A'}</td>
+                    <td>Q. ${item.costoConsulta.toFixed(2)}</td>
+                    <td>Q. ${item.costoExamenes.toFixed(2)}</td>
+                    <td>Q. ${item.costoMedicamentos.toFixed(2)}</td>
+                    <td><strong>Q. ${item.costoTotal.toFixed(2)}</strong></td>
+                    <td><span class="badge ${badgeClase}">${item.estadoPago || 'PENDIENTE'}</span></td>
+                </tr>
+            `;
+        });
+    } catch (error) {
+        console.error("Error al cargar el reporte de cobros:", error);
+        const tbody = document.getElementById('tablaReporteCobros');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">Error al cargar el reporte de cobros.</td></tr>`;
         }
     }
 }
