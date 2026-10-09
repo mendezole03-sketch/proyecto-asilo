@@ -4,43 +4,83 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "donaciones")
+@Table(name = " donaciones") 
 public class Donacion {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "id_donacion")
+    private Long idDonacion;
 
+    @Column(name = "tipo_donante", nullable = false)
     private String tipoDonante;
-    private String nombreDonante;
-    private Double monto;
-    
-    @Column(columnDefinition = "TEXT")
-    private String descripcion;
-    
-    private LocalDate fecha;
 
+    @Column(name = "nombre_donante", nullable = false)
+    private String nombreDonante;
+
+    @Column(name = "monto", nullable = false)
+    private Double monto;
+
+    @Column(name = "descripcion")
+    private String descripcion;
+
+    @Column(name = "fecha_donacion")
+    private LocalDate fechaDonacion;
+
+    // Se ejecuta automáticamente antes de guardar para poner la fecha de hoy si viene vacía
     @PrePersist
     public void prePersist() {
-        this.fecha = LocalDate.now();
+        if (this.fechaDonacion == null) {
+            this.fechaDonacion = LocalDate.now();
+        }
     }
 
     // Getters y Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getIdDonacion() {
+        return idDonacion;
+    }
 
-    public String getTipoDonante() { return tipoDonante; }
-    public void setTipoDonante(String tipoDonante) { this.tipoDonante = tipoDonante; }
+    public void setIdDonacion(Long idDonacion) {
+        this.idDonacion = idDonacion;
+    }
 
-    public String getNombreDonante() { return nombreDonante; }
-    public void setNombreDonante(String nombreDonante) { this.nombreDonante = nombreDonante; }
+    public String getTipoDonante() {
+        return tipoDonante;
+    }
 
-    public Double getMonto() { return monto; }
-    public void setMonto(Double monto) { this.monto = monto; }
+    public void setTipoDonante(String tipoDonante) {
+        this.tipoDonante = tipoDonante;
+    }
 
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    public String getNombreDonante() {
+        return nombreDonante;
+    }
 
-    public LocalDate getFecha() { return fecha; }
-    public void setFecha(LocalDate fecha) { this.fecha = fecha; }
+    public void setNombreDonante(String nombreDonante) {
+        this.nombreDonante = nombreDonante;
+    }
+
+    public Double getMonto() {
+        return monto;
+    }
+
+    public void setMonto(Double monto) {
+        this.monto = monto;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public LocalDate getFechaDonacion() {
+        return fechaDonacion;
+    }
+
+    public void setFechaDonacion(LocalDate fechaDonacion) {
+        this.fechaDonacion = fechaDonacion;
+    }
 }
