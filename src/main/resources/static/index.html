@@ -12,11 +12,14 @@
 </head>
 <body class="bg-light">
 
-    <!-- Barra de navegación -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4 mb-4">
-        <a class="navbar-brand fw-bold" href="#">🏥 Asilo Cabeza de Algodón</a>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">🏥 Asilo Cabeza de Algodón</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <ul class="navbar-nav me-auto">
                 <li class="nav-item">
                     <a class="nav-link active" href="#" onclick="navegarA('seccion-inicio')">📊 Inicio</a>
                 </li>
@@ -27,18 +30,19 @@
                     <a class="nav-link" href="#" onclick="navegarA('seccion-usuarios')">👨‍⚕️ Usuarios / Personal</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link disabled" href="#">💰 Caja y Donaciones</a>
+                    <a class="nav-link text-warning fw-bold" href="#" onclick="verificarAccesoCaja()">💰 Caja y Donaciones</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link disabled" href="#">📄 Reportes</a>
+                    <a class="nav-link" href="#" onclick="navegarA('seccion-reportes')">📄 Reportes</a>
                 </li>
             </ul>
-            <div class="d-flex align-items-center gap-3 text-white">
-                <span id="info-usuario" class="fw-bold">Cargando usuario...</span>
-                <button class="btn btn-outline-light btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
+            <div class="d-flex align-items-center text-white">
+                <span id="nombre-usuario-logueado" class="me-3">Cargando usuario...</span>
+                <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
             </div>
         </div>
-    </nav>
+    </div>
+</nav>
 
     <div class="container">
         

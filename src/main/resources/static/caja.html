@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Caja y Finanzas - Asilo Cabeza de Algodón</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card-header { font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar Superior con Usuario y Botón Cerrar Sesión -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">💰 Caja y Donaciones - Asilo Cabeza de Algodón</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-center">
+                    <li class="nav-item me-2">
+                        <button class="btn btn-outline-warning btn-sm fw-bold" onclick="window.location.href='/index.html'">⬅️ Volver a Administrador</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <!-- Navegación por pestañas internas del módulo -->
+        <ul class="nav nav-tabs mb-4" id="cajaTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold" id="cuentas-tab" data-bs-toggle="tab" data-bs-target="#cuentas-content" type="button" role="tab">
+                    <i class="bi bi-file-earmark-text me-1"></i> Cuentas Médicas y Familiares
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="donaciones-tab" data-bs-toggle="tab" data-bs-target="#donaciones-content" type="button" role="tab">
+                    <i class="bi bi-gift me-1"></i> Donaciones y Cuotas
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="gastos-tab" data-bs-toggle="tab" data-bs-target="#gastos-content" type="button" role="tab">
+                    <i class="bi bi-receipt me-1"></i> Control de Gastos (Egresos)
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="cajaTabsContent">
+            
+            <!-- PESTAÑA 1: CUENTAS MÉDICAS Y CARGOS -->
+            <div class="tab-pane fade show active" id="cuentas-content" role="tabpanel">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-table me-1"></i> Cuentas por Cobrar de Servicios Médicos (Con Descuento de Fundación)</span>
+                        <button class="btn btn-sm btn-light fw-bold" onclick="cargarCuentasMedicas()">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Paciente</th>
+                                        <th>Familiar</th>
+                                        <th>Subtotal (Consulta + Lab + Farmacia)</th>
+                                        <th>Desc. Fundación</th>
+                                        <th>Total a Pagar</th>
+                                        <th>Estado</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaCuentasMedicas">
+                                    <!-- Se llena dinámicamente desde app-caja.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PESTAÑA 2: DONACIONES Y CUOTAS -->
+            <div class="tab-pane fade" id="donaciones-content" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-plus-circle me-1"></i> Registrar Nueva Donación
+                            </div>
+                            <div class="card-body">
+                                <form id="formDonacion" onsubmit="registrarDonacion(event)">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Tipo de Donante:</label>
+                                        <select id="tipoDonante" class="form-select" required>
+                                            <option value="">Seleccione...</option>
+                                            <option value="Internacional">Empresa Internacional</option>
+                                            <option value="Nacional">Empresa Nacional</option>
+                                            <option value="Gobierno">Gobierno</option>
+                                            <option value="Particular">Persona Particular</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Nombre del Donante / Institución:</label>
+                                        <input type="text" id="nombreDonante" class="form-control" required placeholder="Ej. Fundación XYZ o Juan Pérez">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Monto (Q):</label>
+                                        <input type="number" step="0.01" min="0" id="montoDonacion" class="form-control" required placeholder="0.00">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Descripción / Observaciones:</label>
+                                        <textarea id="descDonacion" class="form-control" rows="2" placeholder="Detalles de la donación..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100 fw-bold">
+                                        <i class="bi bi-save me-1"></i> Guardar Donación
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-secondary text-white">
+                                <i class="bi bi-list-ul me-1"></i> Historial de Donaciones Registradas
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                    <table class="table table-sm table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Tipo</th>
+                                                <th>Donante</th>
+                                                <th>Monto</th>
+                                                <th>Fecha</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tablaDonaciones">
+                                            <!-- Dinámico -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PESTAÑA 3: GASTOS Y EGRESOS -->
+            <div class="tab-pane fade" id="gastos-content" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-danger text-white">
+                                <i class="bi bi-dash-circle me-1"></i> Registrar Gasto u Egreso Operativo
+                            </div>
+                            <div class="card-body">
+                                <form id="formGasto" onsubmit="registrarGasto(event)">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Concepto del Gasto:</label>
+                                        <input type="text" id="conceptosGasto" class="form-control" required placeholder="Ej. Pago de luz (Energuate), Agua, etc.">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Monto (Q):</label>
+                                        <input type="number" step="0.01" min="0" id="montoGasto" class="form-control" required placeholder="0.00">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">No. de Factura / Comprobante:</label>
+                                        <input type="text" id="comprobanteGasto" class="form-control" placeholder="Ej. FAC-98765">
+                                    </div>
+                                    <button type="submit" class="btn btn-danger w-100 fw-bold">
+                                        <i class="bi bi-save me-1"></i> Registrar Gasto
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-secondary text-white">
+                                <i class="bi bi-shield-check me-1"></i> Fiscalización de Gastos Operativos
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                    <table class="table table-sm table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Concepto</th>
+                                                <th>Comprobante</th>
+                                                <th>Monto</th>
+                                                <th>Fecha</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tablaGastos">
+                                            <!-- Dinámico -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Scripts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Script Principal de Caja -->
+    <script src="app-caja.js"></script>
+</body>
+</html>
