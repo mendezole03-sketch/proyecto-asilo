@@ -69,21 +69,40 @@ public class FarmaciaController {
                             .mapToDouble(r -> r.getCostoMedicamento() != null ? r.getCostoMedicamento().doubleValue() : 0.0)
                             .sum();
 
-                    // 2. Buscar la cuenta familiar del paciente y actualizar su subtotal de medicamentos
+                    // 2. Buscar la cuenta familiar y actualizar su subtotal de medicamentos
                     if (visita.getIdPaciente() != null) {
                         List<CuentaFamiliar> cuentas = cuentaFamiliarRepository.findAll();
                         for (CuentaFamiliar c : cuentas) {
-                            if (c.getPaciente() != null && c.getPaciente().getIdPaciente().equals(visita.getIdPaciente())) {
+                            boolean coincideVisita = c.getIdVisita() != null && c.getIdVisita().equals(visita.getIdVisita());
+                            boolean coincidePaciente = c.getPaciente() != null && c.getPaciente().getIdPaciente().equals(visita.getIdPaciente());
+
+                            if (coincideVisita || coincidePaciente) {
                                 c.setSubtotalMedicamentos(nuevoSubtotalMedicamentos);
 
-                                // Recalcular el monto bruto y el total a pagar general
+                                // Recalcular el monto bruto sumando consulta, exámenes y farmacia actualizados
                                 double consulta = c.getSubtotalConsulta() != null ? c.getSubtotalConsulta() : 0.0;
                                 double examenes = c.getSubtotalExamenes() != null ? c.getSubtotalExamenes() : 0.0;
-                                double bruto = consulta + examenes + nuevoSubtotalMedicamentos;
-                                double descuento = c.getDescuentoFundacion() != null ? c.getDescuentoFundacion() : 0.0;
+                                double montoBruto = consulta + examenes + nuevoSubtotalMedicamentos;
 
-                                c.setMontoTotalBruto(bruto);
-                                c.setMontoFinalAPagar(bruto - descuento);
+                                // APLICAR REGLA DE RANGOS Y PORCENTAJES DE LA FUNDACIÓN
+                                double porcentajeDescuento = 0.0;
+                                if (montoBruto <= 150) {
+                                    porcentajeDescuento = 0.10; // 10%
+                                } else if (montoBruto <= 300) {
+                                    porcentajeDescuento = 0.20; // 20%
+                                } else if (montoBruto <= 900) {
+                                    porcentajeDescuento = 0.30; // 30%
+                                } else {
+                                    porcentajeDescuento = 0.35; // 35%
+                                }
+
+                                double descuentoFundacion = montoBruto * porcentajeDescuento;
+                                double montoFinal = montoBruto - descuentoFundacion;
+
+                                // Guardar valores actualizados en la cuenta familiar
+                                c.setMontoTotalBruto(montoBruto);
+                                c.setDescuentoFundacion(descuentoFundacion);
+                                c.setMontoFinalAPagar(montoFinal);
 
                                 cuentaFamiliarRepository.save(c);
                                 break;

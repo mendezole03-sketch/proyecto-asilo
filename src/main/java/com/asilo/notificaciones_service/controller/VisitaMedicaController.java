@@ -110,9 +110,22 @@ public class VisitaMedicaController {
             }
         }
 
-        // 4. CREAR Y GUARDAR EL REGISTRO EN LA CUENTA FAMILIAR (CAJA)
+        // 4. CREAR Y GUARDAR EL REGISTRO EN LA CUENTA FAMILIAR (CAJA CON DESCUENTO AUTOMÁTICO)
         double montoBruto = costoConsulta + subtotalExamenes + subtotalMedicamentos;
-        double descuentoFundacion = 0.0; 
+        double porcentajeDescuento = 0.0;
+
+        // Reglas de rangos solicitadas:
+        if (montoBruto <= 150) {
+            porcentajeDescuento = 0.10; // 10%
+        } else if (montoBruto <= 300) {
+            porcentajeDescuento = 0.20; // 20%
+        } else if (montoBruto <= 900) {
+            porcentajeDescuento = 0.30; // 30%
+        } else {
+            porcentajeDescuento = 0.35; // 35% para mayores a 900
+        }
+
+        double descuentoFundacion = montoBruto * porcentajeDescuento;
         double montoFinal = montoBruto - descuentoFundacion;
 
         CuentaFamiliar cuenta = new CuentaFamiliar();

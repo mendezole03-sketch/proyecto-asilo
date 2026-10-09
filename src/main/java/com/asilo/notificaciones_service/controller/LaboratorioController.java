@@ -149,22 +149,42 @@ public class LaboratorioController {
                             .mapToDouble(e -> e.getCostoExamen() != null ? e.getCostoExamen() : 0.0)
                             .sum();
 
-                    // 2. Buscar si ya existe un registro de cuenta familiar asociado a este paciente para actualizarlo
+                    // 2. Buscar si ya existe un registro de cuenta familiar asociado a esta visita/paciente para actualizarlo
                     if (visita.getIdPaciente() != null) {
                         List<CuentaFamiliar> cuentas = cuentaFamiliarRepository.findAll();
                         for (CuentaFamiliar c : cuentas) {
-                            if (c.getPaciente() != null && c.getPaciente().getIdPaciente().equals(visita.getIdPaciente())) {
+                            // Verificamos si coincide por id_visita (o por paciente si es el único registro)
+                            boolean coincideVisita = c.getIdVisita() != null && c.getIdVisita().equals(visita.getIdVisita());
+                            boolean coincidePaciente = c.getPaciente() != null && c.getPaciente().getIdPaciente().equals(visita.getIdPaciente());
+
+                            if (coincideVisita || coincidePaciente) {
                                 // Actualizar el subtotal de exámenes
                                 c.setSubtotalExamenes(nuevoSubtotalExamenes);
                                 
-                                // Recalcular monto bruto y total a pagar
+                                // Recalcular monto bruto sumando consulta, exámenes y medicamentos actuales
                                 double consulta = c.getSubtotalConsulta() != null ? c.getSubtotalConsulta() : 0.0;
                                 double meds = c.getSubtotalMedicamentos() != null ? c.getSubtotalMedicamentos() : 0.0;
-                                double bruto = consulta + nuevoSubtotalExamenes + meds;
-                                double descuento = c.getDescuentoFundacion() != null ? c.getDescuentoFundacion() : 0.0;
-                                
-                                c.setMontoTotalBruto(bruto);
-                                c.setMontoFinalAPagar(bruto - descuento);
+                                double montoBruto = consulta + nuevoSubtotalExamenes + meds;
+
+                                // APLICAR REGLA DE RANGOS Y PORCENTAJES DE LA FUNDACIÓN
+                                double porcentajeDescuento = 0.0;
+                                if (montoBruto <= 150) {
+                                    porcentajeDescuento = 0.10; // 10%
+                                } else if (montoBruto <= 300) {
+                                    porcentajeDescuento = 0.20; // 20%
+                                } else if (montoBruto <= 900) {
+                                    porcentajeDescuento = 0.30; // 30%
+                                } else {
+                                    porcentajeDescuento = 0.35; // 35%
+                                }
+
+                                double descuentoFundacion = montoBruto * porcentajeDescuento;
+                                double montoFinal = montoBruto - descuentoFundacion;
+
+                                // Guardar valores actualizados en la cuenta familiar
+                                c.setMontoTotalBruto(montoBruto);
+                                c.setDescuentoFundacion(descuentoFundacion);
+                                c.setMontoFinalAPagar(montoFinal);
                                 
                                 cuentaFamiliarRepository.save(c);
                                 break;
