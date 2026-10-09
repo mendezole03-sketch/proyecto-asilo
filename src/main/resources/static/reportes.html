@@ -162,10 +162,27 @@
         <div id="seccion-pagos-fundacion" class="seccion-reporte d-none">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h3 class="m-0">🏛️ Reporte de Pagos a la Fundación y Entradas/Donaciones</h3>
+                <button class="btn btn-primary shadow-sm" onclick="cargarReportePagosFundacion()">↻ Actualizar Datos</button>
             </div>
             <div class="card card-custom shadow-sm mb-5">
-                <div class="card-body">
-                    <p class="text-muted">Detalle de ingresos y donaciones registradas.</p>
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Tipo de Ingreso</th>
+                                <th>Fuente (Familiar / Donante)</th>
+                                <th>Monto</th>
+                                <th>Fecha</th>
+                                <th>Detalle / Mes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaReportePagos">
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">Haz clic en actualizar para cargar los ingresos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

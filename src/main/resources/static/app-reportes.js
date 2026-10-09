@@ -1,10 +1,8 @@
 const API_URL_REPORTES = 'http://localhost:8081/api/reportes';
 
 document.addEventListener("DOMContentLoaded", () => {
-    
     cargarReporteCostosCitas();
 });
-
 
 function cambiarReporte(seccionId) {
     document.querySelectorAll('.seccion-reporte').forEach(el => {
@@ -29,12 +27,11 @@ function cambiarReporte(seccionId) {
     } else if (seccionId === 'cobros-fecha') {
         cargarReporteCobrosFecha();
     } else if (seccionId === 'pagos-fundacion') {
-        // Próximamente: cargarReportePagosFundacion();
+        cargarReportePagosFundacion();
     } else if (seccionId === 'examenes-medicamentos') {
         // Próximamente: cargarReporteExamenesMedicamentos();
     }
 }
-
 
 async function cargarReporteCostosCitas() {
     try {
@@ -73,6 +70,7 @@ async function cargarReporteCostosCitas() {
         }
     }
 }
+
 // Cargar el Reporte de Ficha Médica y Análisis
 async function cargarReporteFichaMedica() {
     try {
@@ -161,6 +159,44 @@ async function cargarReporteCobrosFecha() {
     }
 }
 
+// Cargar el Reporte de Pagos a la Fundación y Donaciones
+async function cargarReportePagosFundacion() {
+    try {
+        const response = await fetch(`${API_URL_REPORTES}/pagos-fundacion`);
+        if (!response.ok) throw new Error('Error al conectar con el servidor');
+        
+        const data = await response.json();
+        const tbody = document.getElementById('tablaReportePagos');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+        
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No hay registros de pagos o donaciones disponibles.</td></tr>`;
+            return;
+        }
+
+        data.forEach(item => {
+            const badgeClase = item.tipoIngreso === 'CUOTA MENSUAL' ? 'bg-primary' : 'bg-success';
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.idRegistro}</td>
+                    <td><span class="badge ${badgeClase}">${item.tipoIngreso}</span></td>
+                    <td><strong>${item.fuente ? escaparHTML(item.fuente) : 'Anónimo'}</strong></td>
+                    <td><strong>Q. ${item.monto.toFixed(2)}</strong></td>
+                    <td>${item.fecha || 'N/A'}</td>
+                    <td>${item.detalle ? escaparHTML(item.detalle) : 'N/A'}</td>
+                </tr>
+            `;
+        });
+    } catch (error) {
+        console.error("Error al cargar el reporte de pagos:", error);
+        const tbody = document.getElementById('tablaReportePagos');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Error al cargar los pagos y donaciones.</td></tr>`;
+        }
+    }
+}
 
 function escaparHTML(str) {
     return str.replace(/[&<>'"]/g, 
@@ -170,5 +206,5 @@ function escaparHTML(str) {
 
 function cerrarSesion() {
     localStorage.clear();
-    window.location.href = 'login.html'; // Ajusta a tu vista de login si aplica
+    window.location.href = 'login.html';
 }

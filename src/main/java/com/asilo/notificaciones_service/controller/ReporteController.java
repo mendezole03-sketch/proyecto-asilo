@@ -3,6 +3,7 @@ package com.asilo.notificaciones_service.controller;
 import com.asilo.notificaciones_service.dto.ReporteCitaCostosDTO;
 import com.asilo.notificaciones_service.dto.ReporteFichaMedicaDTO;
 import com.asilo.notificaciones_service.dto.ReporteCobrosFechaDTO;
+import com.asilo.notificaciones_service.dto.ReportePagoDonacionDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -144,6 +145,44 @@ public class ReporteController {
                     );
                     reporte.add(dto);
                 }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+
+        return ResponseEntity.ok(reporte);
+    }
+
+    @GetMapping("/pagos-fundacion")
+    public ResponseEntity<List<ReportePagoDonacionDTO>> obtenerPagosYDonaciones() {
+        List<ReportePagoDonacionDTO> reporte = new ArrayList<>();
+        
+        String sql = 
+            "SELECT c.id_cuota AS id_registro, 'CUOTA MENSUAL' AS tipo_ingreso, f.nombre AS fuente, c.monto, c.fecha_pago AS fecha, c.mes_correspondiente AS detalle " +
+            "FROM cuotas_mensuales c " +
+            "LEFT JOIN Familiar f ON c.id_familiar = f.idFamiliar " +
+            "WHERE c.estado = 'PAGADO' " +
+            "UNION ALL " +
+            "SELECT d.id_donacion AS id_registro, 'DONACIÓN' AS tipo_ingreso, d.nombre_donante AS fuente, d.monto, d.fecha_donacion AS fecha, d.descripcion AS detalle " +
+            "FROM donaciones d " +
+            "ORDER BY fecha DESC";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                ReportePagoDonacionDTO dto = new ReportePagoDonacionDTO(
+                    rs.getLong("id_registro"),
+                    rs.getString("tipo_ingreso"),
+                    rs.getString("fuente"),
+                    rs.getDouble("monto"),
+                    rs.getDate("fecha") != null ? rs.getDate("fecha").toLocalDate() : null,
+                    rs.getString("detalle")
+                );
+                reporte.add(dto);
             }
 
         } catch (Exception e) {
