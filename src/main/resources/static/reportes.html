@@ -191,10 +191,28 @@
         <div id="seccion-examenes-medicamentos" class="seccion-reporte d-none">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h3 class="m-0">🩺 Reporte de Exámenes y Medicamentos Aplicados</h3>
+                <button class="btn btn-primary shadow-sm" onclick="cargarReporteExamenesMedicamentos()">↻ Actualizar Datos</button>
             </div>
             <div class="card card-custom shadow-sm mb-5">
-                <div class="card-body">
-                    <p class="text-muted">Historial por residente.</p>
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID Visita</th>
+                                <th>Paciente</th>
+                                <th>Fecha</th>
+                                <th>Examen de Laboratorio</th>
+                                <th>Costo Examen</th>
+                                <th>Medicamento Aplicado</th>
+                                <th>Costo Medicamento</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaReporteExamenesMedicamentos">
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">Haz clic en actualizar para cargar el historial médico...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

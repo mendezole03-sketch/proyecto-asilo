@@ -29,7 +29,7 @@ function cambiarReporte(seccionId) {
     } else if (seccionId === 'pagos-fundacion') {
         cargarReportePagosFundacion();
     } else if (seccionId === 'examenes-medicamentos') {
-        // Próximamente: cargarReporteExamenesMedicamentos();
+        cargarReporteExamenesMedicamentos();
     }
 }
 
@@ -194,6 +194,45 @@ async function cargarReportePagosFundacion() {
         const tbody = document.getElementById('tablaReportePagos');
         if (tbody) {
             tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Error al cargar los pagos y donaciones.</td></tr>`;
+        }
+    }
+}
+
+// Cargar el Reporte de Exámenes y Medicamentos Aplicados
+async function cargarReporteExamenesMedicamentos() {
+    try {
+        const response = await fetch(`${API_URL_REPORTES}/examenes-medicamentos`);
+        if (!response.ok) throw new Error('Error al conectar con el servidor');
+        
+        const data = await response.json();
+        const tbody = document.getElementById('tablaReporteExamenesMedicamentos');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+        
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No hay registros de exámenes o medicamentos disponibles.</td></tr>`;
+            return;
+        }
+
+        data.forEach(item => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.idVisita}</td>
+                    <td><strong>${item.nombrePaciente ? escaparHTML(item.nombrePaciente) : 'N/A'}</strong></td>
+                    <td>${item.fechaVisita || 'N/A'}</td>
+                    <td>${item.tipoExamen ? escaparHTML(item.tipoExamen) : '<span class="text-muted">Ninguno</span>'}</td>
+                    <td>${item.costoExamen ? 'Q. ' + item.costoExamen.toFixed(2) : '-'}</td>
+                    <td>${item.nombreMedicamento ? escaparHTML(item.nombreMedicamento) : '<span class="text-muted">Ninguno</span>'}</td>
+                    <td>${item.costoMedicamento ? 'Q. ' + item.costoMedicamento.toFixed(2) : '-'}</td>
+                </tr>
+            `;
+        });
+    } catch (error) {
+        console.error("Error al cargar el reporte de exámenes y medicamentos:", error);
+        const tbody = document.getElementById('tablaReporteExamenesMedicamentos');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">Error al cargar el historial médico.</td></tr>`;
         }
     }
 }

@@ -4,6 +4,7 @@ import com.asilo.notificaciones_service.dto.ReporteCitaCostosDTO;
 import com.asilo.notificaciones_service.dto.ReporteFichaMedicaDTO;
 import com.asilo.notificaciones_service.dto.ReporteCobrosFechaDTO;
 import com.asilo.notificaciones_service.dto.ReportePagoDonacionDTO;
+import com.asilo.notificaciones_service.dto.ReporteExamenesMedicamentosDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -181,6 +182,50 @@ public class ReporteController {
                     rs.getDouble("monto"),
                     rs.getDate("fecha") != null ? rs.getDate("fecha").toLocalDate() : null,
                     rs.getString("detalle")
+                );
+                reporte.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+
+        return ResponseEntity.ok(reporte);
+    }
+
+    @GetMapping("/examenes-medicamentos")
+    public ResponseEntity<List<ReporteExamenesMedicamentosDTO>> obtenerExamenesYMedicamentos() {
+        List<ReporteExamenesMedicamentosDTO> reporte = new ArrayList<>();
+        
+        // Consulta corregida usando e.nombre_examen y m.medicamento
+        String sql = 
+            "SELECT v.id_visita, p.nombre AS nombre_paciente, v.fecha_registro, " +
+            "e.nombre_examen AS tipo_examen, e.costo_examen, NULL AS nombre_medicamento, NULL AS costo_medicamento " +
+            "FROM visita_medica v " +
+            "JOIN Paciente p ON v.id_paciente = p.idPaciente " +
+            "JOIN examen_laboratorio e ON v.id_visita = e.id_visita " +
+            "UNION ALL " +
+            "SELECT v.id_visita, p.nombre AS nombre_paciente, v.fecha_registro, " +
+            "NULL AS tipo_examen, NULL AS costo_examen, m.medicamento AS nombre_medicamento, m.costo_medicamento " +
+            "FROM visita_medica v " +
+            "JOIN Paciente p ON v.id_paciente = p.idPaciente " +
+            "JOIN receta_medicamento m ON v.id_visita = m.id_visita " +
+            "ORDER BY fecha_registro DESC";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                ReporteExamenesMedicamentosDTO dto = new ReporteExamenesMedicamentosDTO(
+                    rs.getLong("id_visita"),
+                    rs.getString("nombre_paciente"),
+                    rs.getDate("fecha_registro") != null ? rs.getDate("fecha_registro").toLocalDate() : null,
+                    rs.getString("tipo_examen") != null ? rs.getString("tipo_examen") : "Ninguno",
+                    rs.getObject("costo_examen") != null ? rs.getDouble("costo_examen") : 0.0,
+                    rs.getString("nombre_medicamento") != null ? rs.getString("nombre_medicamento") : "Ninguno",
+                    rs.getObject("costo_medicamento") != null ? rs.getDouble("costo_medicamento") : 0.0
                 );
                 reporte.add(dto);
             }
