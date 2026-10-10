@@ -50,6 +50,40 @@
     </div>
 
     <script>
+        // Función auxiliar para redirigir según el rol del usuario
+        function redirigirSegunRol(usuario) {
+            const rol = usuario.rol ? usuario.rol.toUpperCase() : '';
+
+            if (rol === 'MEDICO_GENERAL') {
+                window.location.href = 'medico-general.html';
+            } else if (rol === 'FUNDACION') {
+                window.location.href = 'fundacion.html';
+            } else if (rol === 'MEDICO_ESPECIALISTA') {
+                window.location.href = 'medico-especialista.html';
+            } else if (rol === 'LABORATORIO') {
+                window.location.href = 'laboratorio.html';
+            } else if (rol === 'FARMACIA') {
+                window.location.href = 'farmacia.html';
+            } else {
+                // Si es ADMIN, ADMINISTRADOR o cualquier otro no especificado arriba
+                window.location.href = 'index.html';
+            }
+        }
+
+        // AGREGADO: Si el usuario ya inició sesión previamente, redirigirlo automáticamente al cargar el login
+        document.addEventListener('DOMContentLoaded', () => {
+            const usuarioGuardado = localStorage.getItem('usuario');
+            if (usuarioGuardado) {
+                try {
+                    const usuario = JSON.parse(usuarioGuardado);
+                    redirigirSegunRol(usuario);
+                } catch (e) {
+                    localStorage.removeItem('usuario');
+                }
+            }
+        });
+
+        // Evento principal de Login
         document.getElementById('form-login').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -71,8 +105,12 @@
                 if (respuesta.ok) {
                     // Guardar datos del usuario en la sesión del navegador
                     localStorage.setItem('usuario', JSON.stringify(datos));
-                    // Redirigir a la vista de pacientes
-                    window.location.href = 'index.html';
+                    if (datos.token) {
+                        localStorage.setItem('token', datos.token);
+                    }
+                    
+                    // CAMBIO REALIZADO: En lugar de ir siempre a index.html, redirige según el rol obtenido del servidor
+                    redirigirSegunRol(datos);
                 } else {
                     divError.textContent = datos.error || 'Credenciales inválidas';
                     divError.classList.remove('d-none');
