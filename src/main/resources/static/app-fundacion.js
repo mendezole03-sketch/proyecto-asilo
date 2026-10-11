@@ -93,7 +93,6 @@ function aplicarLimitesFechas() {
 /* ==========================================================================
    GESTIÓN DE SOLICITUDES Y CITAS MÉDICAS (FUNDACIÓN)
    ========================================================================== */
-
 async function cargarSolicitudesFundacion() {
     const tbody = document.getElementById('tabla-solicitudes-body') || document.getElementById('tabla-solicitudes-fundacion-body');
     if (!tbody) return;
@@ -120,8 +119,10 @@ async function cargarSolicitudesFundacion() {
 
         listaSolicitudesFundacion.forEach(sol => {
             const estado = sol.estado || 'PENDIENTE';
+            
+            // Conteo de métricas actualizado para incluir COMPLETADA dentro de las atendidas/agendadas
             if (estado === 'PENDIENTE') pendientes++;
-            if (estado === 'AGENDADA') agendadas++;
+            if (estado === 'AGENDADA' || estado === 'COMPLETADA') agendadas++;
             if (estado === 'CANCELADA') canceladas++;
 
             const idSolicitud = sol.idSolicitud || sol.id;
@@ -130,6 +131,8 @@ async function cargarSolicitudesFundacion() {
             let badgeEstado = '<span class="badge bg-warning text-dark">PENDIENTE</span>';
             if (estado === 'AGENDADA') {
                 badgeEstado = '<span class="badge bg-success">AGENDADA</span>';
+            } else if (estado === 'COMPLETADA') {
+                badgeEstado = '<span class="badge bg-primary">COMPLETADA</span>'; // Insignia azul para completadas
             } else if (estado === 'CANCELADA') {
                 badgeEstado = '<span class="badge bg-danger">CANCELADA</span>';
             }
@@ -161,6 +164,7 @@ async function cargarSolicitudesFundacion() {
                     `;
                 }
             } else {
+                // Para estados como COMPLETADA o CANCELADA ya no requieren acciones
                 botonesAccion = `<span class="text-muted small">Sin acciones</span>`;
             }
 
@@ -185,6 +189,7 @@ async function cargarSolicitudesFundacion() {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error al conectar con el servidor.</td></tr>';
     }
 }
+
 
 function actualizarMetricasFundacion(pendientes, agendadas, canceladas) {
     const elPendientes = document.getElementById('total-pendientes');
