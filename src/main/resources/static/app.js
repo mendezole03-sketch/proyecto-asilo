@@ -374,6 +374,22 @@ async function eliminarPaciente(id) {
         }
     }
 }
+function navegarA(idSeccion) {
+    // Ocultar todas las secciones de contenido
+    document.querySelectorAll('.seccion-contenido').forEach(sec => sec.classList.add('d-none'));
+    
+    // Mostrar la sección destino específica
+    const seccionDestino = document.getElementById(idSeccion);
+    if (seccionDestino) {
+        seccionDestino.classList.remove('d-none');
+    }
+
+    // Gestionar la clase 'active' en la barra de navegación
+    if (window.event && window.event.currentTarget) {
+        document.querySelectorAll('.navbar-nav .nav-link').forEach(link => link.classList.remove('active'));
+        window.event.currentTarget.classList.add('active');
+    }
+}
 
 /* ==========================================================================
    INICIALIZACIÓN (ADMIN)
