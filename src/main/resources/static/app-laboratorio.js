@@ -22,7 +22,9 @@ function cerrarSesion() {
 }
 
 // Endpoints API Backend
-const API_URL_BASE = 'http://localhost:8081';
+//const API_URL_BASE = 'http://localhost:8081';
+const API_URL_BASE = 'https://implicate-glamorous-uprising.ngrok-free.dev';
+
 const API_URL_EXAMENES = `${API_URL_BASE}/api/examenes`;
 
 let listaExamenesGlobal = [];

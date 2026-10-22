@@ -14,7 +14,8 @@ function cerrarSesion() {
 }
 
 // Ajustado al puerto habitual de Spring Boot (8080)
-const API_URL_FARMACIA = 'http://localhost:8081/api/farmacia';
+//const API_URL_FARMACIA = 'http://localhost:8081/api/farmacia';
+const API_URL_FARMACIA = 'https://implicate-glamorous-uprising.ngrok-free.dev/api/farmacia';
 let listaRecetasGlobal = [];
 
 async function fetchData(url, options = {}) {

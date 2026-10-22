@@ -6,13 +6,25 @@ document.getElementById('form-login').addEventListener('submit', async function(
     const divError = document.getElementById('mensaje-error');
 
     divError.classList.add('d-none');
-
+    
+    
     try {
+    const respuesta = await fetch('https://implicate-glamorous-uprising.ngrok-free.dev/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correo: correo, contrasena: contrasena })
+    });
+
+
+
+   /* try {
         const respuesta = await fetch('http://localhost:8081/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ correo: correo, contrasena: contrasena })
         });
+        
+        */
 
         const datos = await respuesta.json();
 

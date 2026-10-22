@@ -1,5 +1,5 @@
-const API_URL_REPORTES = 'http://localhost:8081/api/reportes';
-
+//const API_URL_REPORTES = 'http://localhost:8081/api/reportes';
+const API_URL_REPORTES = 'https://implicate-glamorous-uprising.ngrok-free.dev/api/reportes';
 document.addEventListener("DOMContentLoaded", () => {
     cargarReporteCostosCitas();
 });
