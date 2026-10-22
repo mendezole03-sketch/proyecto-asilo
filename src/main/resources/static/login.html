@@ -67,12 +67,10 @@
             } else if (rol === 'FARMACIA') {
                 window.location.href = 'farmacia.html';
             } else {
-                // Si es ADMIN, ADMINISTRADOR o cualquier otro no especificado arriba
                 window.location.href = 'index.html';
             }
         }
 
-        // Si el usuario ya inició sesión previamente, redirigirlo automáticamente al cargar el login
         document.addEventListener('DOMContentLoaded', () => {
             const usuarioGuardado = localStorage.getItem('usuario');
             if (usuarioGuardado) {
@@ -96,7 +94,6 @@
             divError.classList.add('d-none');
 
             try {
-                // AQUÍ ESTABA EL ERROR: Ahora es dinámico según si estás en local o en Azure
                 const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:8081' : '';
                 const respuesta = await fetch(`${baseUrl}/api/auth/login`, {
                     method: 'POST',
@@ -107,12 +104,10 @@
                 const datos = await respuesta.json();
 
                 if (respuesta.ok) {
-                    // Guardar datos del usuario en la sesión del navegador
                     localStorage.setItem('usuario', JSON.stringify(datos));
                     if (datos.token) {
                         localStorage.setItem('token', datos.token);
                     }
-                    
                     redirigirSegunRol(datos);
                 } else {
                     divError.textContent = datos.error || 'Credenciales inválidas';
