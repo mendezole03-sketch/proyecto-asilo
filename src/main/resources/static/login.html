@@ -72,7 +72,7 @@
             }
         }
 
-        // AGREGADO: Si el usuario ya inició sesión previamente, redirigirlo automáticamente al cargar el login
+        // Si el usuario ya inició sesión previamente, redirigirlo automáticamente al cargar el login
         document.addEventListener('DOMContentLoaded', () => {
             const usuarioGuardado = localStorage.getItem('usuario');
             if (usuarioGuardado) {
@@ -96,7 +96,9 @@
             divError.classList.add('d-none');
 
             try {
-                const respuesta = await fetch('http://localhost:8081/api/auth/login', {
+                // AQUÍ ESTABA EL ERROR: Ahora es dinámico según si estás en local o en Azure
+                const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:8081' : '';
+                const respuesta = await fetch(`${baseUrl}/api/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ correo: correo, contrasena: contrasena })
@@ -111,7 +113,6 @@
                         localStorage.setItem('token', datos.token);
                     }
                     
-                    // CAMBIO REALIZADO: En lugar de ir siempre a index.html, redirige según el rol obtenido del servidor
                     redirigirSegunRol(datos);
                 } else {
                     divError.textContent = datos.error || 'Credenciales inválidas';
