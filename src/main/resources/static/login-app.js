@@ -8,23 +8,18 @@ document.getElementById('form-login').addEventListener('submit', async function(
     divError.classList.add('d-none');
     
     
-    try {
-    const respuesta = await fetch('https://implicate-glamorous-uprising.ngrok-free.dev/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo: correo, contrasena: contrasena })
-    });
+   
 
 
 
-   /* try {
+   try {
         const respuesta = await fetch('http://localhost:8081/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ correo: correo, contrasena: contrasena })
         });
         
-        */
+        
 
         const datos = await respuesta.json();
 

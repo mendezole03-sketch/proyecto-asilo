@@ -15,8 +15,8 @@ function cerrarSesion() {
     window.location.href = 'login.html';
 }
 
-//const API_URL_BASE = 'http://localhost:8081';
-const API_URL_BASE = 'https://implicate-glamorous-uprising.ngrok-free.dev';
+const API_URL_BASE = 'http://localhost:8081';
+
 const API_URL_PACIENTES = `${API_URL_BASE}/api/pacientes`;
 const API_URL_FAMILIARES = `${API_URL_BASE}/api/familiares`;
 const API_URL_CAJA = `${API_URL_BASE}/api/caja`; 

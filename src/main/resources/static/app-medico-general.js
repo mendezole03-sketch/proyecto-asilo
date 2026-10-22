@@ -20,15 +20,12 @@ function cerrarSesion() {
 }
 
 // Endpoints API
-//const API_URL_PACIENTES = 'http://localhost:8081/api/pacientes';
-//const API_URL_USUARIOS = 'http://localhost:8081/api/usuarios';
-//const API_URL_SOLICITUDES = 'http://localhost:8081/api/solicitudes';
+const API_URL_PACIENTES = 'http://localhost:8081/api/pacientes';
+const API_URL_USUARIOS = 'http://localhost:8081/api/usuarios';
+const API_URL_SOLICITUDES = 'http://localhost:8081/api/solicitudes';
 
 
-// Endpoints API
-const API_URL_PACIENTES = 'https://implicate-glamorous-uprising.ngrok-free.dev/api/pacientes';
-const API_URL_USUARIOS = 'https://implicate-glamorous-uprising.ngrok-free.dev/api/usuarios';
-const API_URL_SOLICITUDES = 'https://implicate-glamorous-uprising.ngrok-free.dev/api/solicitudes';
+
 
 let listaPacientesGlobal = [];
 

@@ -16,8 +16,8 @@ function cerrarSesion() {
     window.location.href = 'login.html';
 }
 
-//const API_URL_BASE = 'http://localhost:8081';
-const API_URL_BASE = 'https://implicate-glamorous-uprising.ngrok-free.dev';
+const API_URL_BASE = 'http://localhost:8081';
+
 const API_URL_ENFERMERIA = `${API_URL_BASE}/api/enfermeria`; // Endpoint para la agenda de enfermería
 
 let listaAsignacionesGlobal = []; // Variable global para almacenar los datos y filtrarlos localmente

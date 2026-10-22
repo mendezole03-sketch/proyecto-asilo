@@ -20,11 +20,10 @@ function cerrarSesion() {
 }
 
 // Endpoints API
-//const API_URL_SOLICITUDES = 'http://localhost:8081/api/solicitudes';
-//const API_URL_USUARIOS = 'http://localhost:8081/api/usuarios';
+const API_URL_SOLICITUDES = 'http://localhost:8081/api/solicitudes';
+const API_URL_USUARIOS = 'http://localhost:8081/api/usuarios';
 
-const API_URL_SOLICITUDES = 'https://implicate-glamorous-uprising.ngrok-free.dev/api/solicitudes';
-const API_URL_USUARIOS = 'https://implicate-glamorous-uprising.ngrok-free.dev/api/usuarios';
+
 
 let listaSolicitudesFundacion = [];
 
