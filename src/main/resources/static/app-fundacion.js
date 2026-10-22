@@ -20,8 +20,8 @@ function cerrarSesion() {
 }
 
 // Endpoints API
-const API_URL_SOLICITUDES = 'http://localhost:8081/api/solicitudes';
-const API_URL_USUARIOS = 'http://localhost:8081/api/usuarios';
+const API_URL_SOLICITUDES = window.location.hostname === 'localhost' ? 'http://localhost:8081/api/solicitudes' : '/api/solicitudes';
+const API_URL_USUARIOS = window.location.hostname === 'localhost' ? 'http://localhost:8081/api/usuarios' : '/api/usuarios';
 
 
 

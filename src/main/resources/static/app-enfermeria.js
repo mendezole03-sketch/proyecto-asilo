@@ -16,7 +16,7 @@ function cerrarSesion() {
     window.location.href = 'login.html';
 }
 
-const API_URL_BASE = 'http://localhost:8081';
+const API_URL_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8081' : '';
 
 const API_URL_ENFERMERIA = `${API_URL_BASE}/api/enfermeria`; // Endpoint para la agenda de enfermería
 

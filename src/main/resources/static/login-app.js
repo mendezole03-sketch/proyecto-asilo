@@ -8,18 +8,17 @@ document.getElementById('form-login').addEventListener('submit', async function(
     divError.classList.add('d-none');
     
     
-   
-
-
-
-   try {
-        const respuesta = await fetch('http://localhost:8081/api/auth/login', {
+    
+    try {
+        const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:8081' : '';
+        const respuesta = await fetch(`${baseUrl}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ correo: correo, contrasena: contrasena })
         });
-        
-        
+    
+    
+  
 
         const datos = await respuesta.json();
 

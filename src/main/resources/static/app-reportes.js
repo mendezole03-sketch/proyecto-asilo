@@ -1,4 +1,4 @@
-const API_URL_REPORTES = 'http://localhost:8081/api/reportes';
+const API_URL_REPORTES = window.location.hostname === 'localhost' ? 'http://localhost:8081/api/reportes' : '/api/reportes';
 
 document.addEventListener("DOMContentLoaded", () => {
     cargarReporteCostosCitas();

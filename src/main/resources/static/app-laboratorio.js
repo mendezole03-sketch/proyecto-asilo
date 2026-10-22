@@ -22,8 +22,7 @@ function cerrarSesion() {
 }
 
 // Endpoints API Backend
-const API_URL_BASE = 'http://localhost:8081';
-
+const API_URL_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8081' : '';
 
 const API_URL_EXAMENES = `${API_URL_BASE}/api/examenes`;
 
