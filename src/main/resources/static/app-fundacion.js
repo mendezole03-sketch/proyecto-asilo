@@ -90,6 +90,21 @@ function aplicarLimitesFechas() {
     }
 }
 
+// Función simplificada para mapear los 3 horarios exactos con el turno del enfermero
+function obtenerTurnoPorHora(horaStr) {
+    if (!horaStr) return "Mañana (07:00 - 15:00)";
+    
+    if (horaStr.includes("08:00 AM")) {
+        return "Mañana (07:00 - 15:00)";
+    } else if (horaStr.includes("02:00 PM")) {
+        return "Tarde (15:00 - 23:00)";
+    } else if (horaStr.includes("08:00 PM")) {
+        return "Noche (23:00 - 07:00)";
+    }
+    
+    return "Mañana (07:00 - 15:00)"; // Valor por defecto
+}
+
 /* ==========================================================================
    GESTIÓN DE SOLICITUDES Y CITAS MÉDICAS (FUNDACIÓN)
    ========================================================================== */
@@ -120,7 +135,6 @@ async function cargarSolicitudesFundacion() {
         listaSolicitudesFundacion.forEach(sol => {
             const estado = sol.estado || 'PENDIENTE';
             
-            // Conteo de métricas actualizado para incluir COMPLETADA dentro de las atendidas/agendadas
             if (estado === 'PENDIENTE') pendientes++;
             if (estado === 'AGENDADA' || estado === 'COMPLETADA') agendadas++;
             if (estado === 'CANCELADA') canceladas++;
@@ -132,7 +146,7 @@ async function cargarSolicitudesFundacion() {
             if (estado === 'AGENDADA') {
                 badgeEstado = '<span class="badge bg-success">AGENDADA</span>';
             } else if (estado === 'COMPLETADA') {
-                badgeEstado = '<span class="badge bg-primary">COMPLETADA</span>'; // Insignia azul para completadas
+                badgeEstado = '<span class="badge bg-primary">COMPLETADA</span>';
             } else if (estado === 'CANCELADA') {
                 badgeEstado = '<span class="badge bg-danger">CANCELADA</span>';
             }
@@ -164,7 +178,6 @@ async function cargarSolicitudesFundacion() {
                     `;
                 }
             } else {
-                // Para estados como COMPLETADA o CANCELADA ya no requieren acciones
                 botonesAccion = `<span class="text-muted small">Sin acciones</span>`;
             }
 
@@ -189,7 +202,6 @@ async function cargarSolicitudesFundacion() {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error al conectar con el servidor.</td></tr>';
     }
 }
-
 
 function actualizarMetricasFundacion(pendientes, agendadas, canceladas) {
     const elPendientes = document.getElementById('total-pendientes');
@@ -264,34 +276,53 @@ async function guardarAgendamiento(evento) {
         return;
     }
 
-    // Validación de choque de horarios
-    const choque = listaSolicitudesFundacion.some(sol => {
+    // --- CORRECCIÓN CLAVE EN LA VALIDACIÓN DE CHOQUE DE HORARIOS ---
+    // Solo bloquea si existe otra cita para ese médico, fecha y hora que esté en estado "AGENDADA"
+    const choqueMedico = listaSolicitudesFundacion.some(sol => {
         const mismoMedico = sol.idMedicoEspecialista && String(sol.idMedicoEspecialista) === String(idMedicoEspecialista);
+        const estadoSol = (sol.estado || '').toUpperCase();
+        
         return String(sol.idSolicitud || sol.id) !== String(idSolicitud) &&
-               mismoMedico && sol.fechaCita === fecha && sol.horaCita === hora && sol.estado !== 'CANCELADA';
+               mismoMedico && 
+               sol.fechaCita === fecha && 
+               sol.horaCita === hora && 
+               estadoSol !== 'CANCELADA' && 
+               estadoSol !== 'COMPLETADA' && 
+               estadoSol !== 'COMPLETADO';
     });
 
-    if (choque) {
+    if (choqueMedico) {
         Swal.fire('Horario Ocupado', 'El médico ya tiene una cita asignada en esa fecha y hora.', 'warning');
         return;
     }
+
+    // Se calcula automáticamente el turno del enfermero según la hora seleccionada
+    const turnoCalculado = obtenerTurnoPorHora(hora);
 
     const boton = document.querySelector('#form-agendar button[type="submit"]');
     const textoOriginal = boton ? boton.innerHTML : 'Confirmar';
     setButtonLoading(boton, true);
 
     try {
+        // Se envía a la API para que valide si el enfermero ya está ocupado en ese turno y guarde
         await fetchData(`${API_URL_SOLICITUDES}/${idSolicitud}/agendar`, {
             method: 'PUT',
-            body: JSON.stringify({ fechaCita: fecha, horaCita: hora, idMedicoEspecialista: parseInt(idMedicoEspecialista, 10), estado: 'AGENDADA' })
+            body: JSON.stringify({ 
+                fechaCita: fecha, 
+                horaCita: hora, 
+                idMedicoEspecialista: parseInt(idMedicoEspecialista, 10), 
+                horarioEnfermero: turnoCalculado, // Turno calculado automáticamente
+                estado: 'AGENDADA' 
+            })
         });
 
         bootstrap.Modal.getInstance(document.getElementById('modalAgendar')).hide();
         document.getElementById('form-agendar').reset();
-        Swal.fire('¡Éxito!', 'Cita agendada correctamente.', 'success');
+        Swal.fire('¡Éxito!', `Cita agendada correctamente (Turno de enfermería: ${turnoCalculado}).`, 'success');
         await cargarSolicitudesFundacion();
     } catch (error) {
-        Swal.fire('Error', error.message || 'No se pudo agendar.', 'error');
+        // Muestra la advertencia si el backend rechaza por conflicto de turno del enfermero
+        Swal.fire('Conflicto de Horario', error.message || 'No se pudo agendar.', 'warning');
     } finally {
         setButtonLoading(boton, false, textoOriginal);
     }
@@ -347,6 +378,5 @@ document.addEventListener('DOMContentLoaded', () => {
     const formCancelar = document.getElementById('form-cancelar');
     if (formCancelar) formCancelar.addEventListener('submit', guardarCancelacion);
 
-    // Forzar la carga de solicitudes independientemente del ID del tbody
     cargarSolicitudesFundacion();
 });

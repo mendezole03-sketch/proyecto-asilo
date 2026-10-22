@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Enfermería - Asilo Cabeza de Algodón</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-dark bg-success px-4 mb-4 shadow-sm">
+        <a class="navbar-brand fw-bold" href="#">护理 Módulo de Enfermería - Asilo Cabeza de Algodón</a>
+        <div class="text-white">
+            <span id="nombre-enfermero-logueado" class="fw-bold">Cargando...</span>
+            <button class="btn btn-outline-light btn-sm ms-3" onclick="cerrarSesion()">Cerrar Sesión</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <!-- NUEVO: Botones de Filtro por Estado -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="btn-group shadow-sm" role="group" aria-label="Filtro de estados">
+                    <button type="button" class="btn btn-outline-warning active" id="btn-pendiente" onclick="filtrarEstado('Pendiente', this)">Pendientes</button>
+                    <button type="button" class="btn btn-outline-primary" id="btn-programado" onclick="filtrarEstado('Programado', this)">Programados</button>
+                    <button type="button" class="btn btn-outline-success" id="btn-completado" onclick="filtrarEstado('Completado', this)">Completados</button>
+                    <button type="button" class="btn btn-outline-secondary" id="btn-todos" onclick="filtrarEstado('TODOS', this)">Ver Todos</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="m-0 fw-bold text-dark">📋 Mi Agenda de Turnos y Pacientes Asignados</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th># Solicitud</th>
+                            <th>Paciente</th>
+                            <th>Turno Asignado</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-agenda-enfermero">
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">Cargando asignaciones...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="app-enfermeria.js"></script>
+</body>
+</html>

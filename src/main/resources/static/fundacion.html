@@ -134,16 +134,12 @@
                   </div>
                   <div class="col-md-6">
                       <label for="agendar-hora" class="form-label fw-bold">Hora de la Cita <span class="text-danger">*</span></label>
-                      <select class="form-select" id="agendar-hora" required>
-                          <option value="" selected disabled>-- Seleccione un horario --</option>
-                          <option value="08:00">08:00 AM</option>
-                          <option value="09:00">09:00 AM</option>
-                          <option value="10:00">10:00 AM</option>
-                          <option value="11:00">11:00 AM</option>
-                          <option value="14:00">02:00 PM</option>
-                          <option value="15:00">03:00 PM</option>
-                          <option value="16:00">04:00 PM</option>
-                      </select>
+                      <select id="agendar-hora" class="form-select" required>
+                        <option value="" selected disabled>-- Seleccione un horario --</option>
+                        <option value="08:00 AM">Mañana (08:00 AM - 12:00 PM)</option>
+                        <option value="02:00 PM">Tarde (02:00 PM - 05:00 PM)</option>
+                        <option value="08:00 PM">Noche (08:00 PM - 11:00 PM)</option>
+                    </select>
                   </div>
               </div>
 

@@ -3,7 +3,9 @@ package com.asilo.notificaciones_service.controller;
 import com.asilo.notificaciones_service.dto.AgendarCitaDTO;
 import com.asilo.notificaciones_service.dto.NotificacionDTO;
 import com.asilo.notificaciones_service.dto.SolicitudDTO;
+import com.asilo.notificaciones_service.model.AgendaEnfermeria;
 import com.asilo.notificaciones_service.model.Solicitud;
+import com.asilo.notificaciones_service.repository.AgendaEnfermeriaRepository;
 import com.asilo.notificaciones_service.repository.PacienteRepository;
 import com.asilo.notificaciones_service.repository.SolicitudRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,19 +28,21 @@ public class SolicitudController {
     private SolicitudRepository solicitudRepository;
 
     @Autowired
-    private PacienteRepository pacienteRepository; // Inyección agregada para verificar el estado del paciente
+    private PacienteRepository pacienteRepository;
 
-    // 1. Obtener todas las solicitudes registradas (ACTUALIZADO para Soft Delete)
+    @Autowired
+    private AgendaEnfermeriaRepository agendaEnfermeriaRepository;
+
+    // 1. Obtener todas las solicitudes registradas (Soft Delete)
     @GetMapping
     public List<Solicitud> obtenerTodasLasSolicitudes() {
         List<Solicitud> solicitudes = solicitudRepository.findAll();
 
-        // Rellenar la bandera 'pacienteActivo' consultando el estado real en la BD
         for (Solicitud sol : solicitudes) {
             if (sol.getIdPaciente() != null) {
                 pacienteRepository.findById(sol.getIdPaciente()).ifPresentOrElse(
                     paciente -> sol.setPacienteActivo(paciente.getActivo()),
-                    () -> sol.setPacienteActivo(false) // Si el paciente ya no existe, se marca inactivo
+                    () -> sol.setPacienteActivo(false)
                 );
             }
         }
@@ -46,7 +50,7 @@ public class SolicitudController {
         return solicitudes;
     }
 
-    // 2. Crear solicitud de remisión (Médico General)
+    // 2. Crear solicitud de remisión (Médico General) -> AQUÍ NACE COMO PENDIENTE
     @PostMapping
     public ResponseEntity<?> crearSolicitud(@RequestBody SolicitudDTO dto) {
         Solicitud entidad = new Solicitud();
@@ -69,10 +73,24 @@ public class SolicitudController {
         }
 
         entidad.setMotivo(dto.getMotivo());
+        entidad.setHorarioEnfermero(null); 
         entidad.setEstado("PENDIENTE");
         entidad.setFechaSolicitud(LocalDate.now());
 
         Solicitud guardada = solicitudRepository.save(entidad);
+
+        // --- CREAR REGISTRO INICIAL EN LA AGENDA DE ENFERMERÍA (PENDIENTE) ---
+        if (guardada.getIdEnfermero() != null) {
+            AgendaEnfermeria agenda = new AgendaEnfermeria();
+            agenda.setIdEnfermero(Long.valueOf(guardada.getIdEnfermero()));
+            agenda.setIdSolicitud(guardada.getIdSolicitud());
+            agenda.setNombrePaciente(guardada.getNombrePaciente() != null ? guardada.getNombrePaciente() : "Paciente");
+            agenda.setTurnoAsignado("Por definir");
+            agenda.setEstado("Pendiente");
+
+            agendaEnfermeriaRepository.save(agenda);
+        }
+        // -------------------------------------------------------------------
 
         try {
             RestTemplate restTemplate = new RestTemplate();
@@ -97,7 +115,7 @@ public class SolicitudController {
         return ResponseEntity.ok(guardada);
     }
 
-    // 3. Agendar cita asignando Fecha y Hora (Fundación)
+    // 3. Agendar cita asignando Fecha, Hora y Turno de Enfermero (Fundación) -> AQUÍ SE ACTUALIZA A PROGRAMADO
     @PutMapping("/{id}/agendar")
     public ResponseEntity<?> agendarCita(@PathVariable Long id, @RequestBody AgendarCitaDTO dto) {
         
@@ -106,8 +124,12 @@ public class SolicitudController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("La solicitud no existe.");
         }
 
+        Solicitud solicitud = optSolicitud.get();
+
+        // A. VALIDACIÓN: Médico Especialista Ocupado (SOLO si tiene cita AGENDADA activa)
         List<Solicitud> citasExistentes = solicitudRepository.findAll();
         boolean medicoOcupado = citasExistentes.stream().anyMatch(s -> 
+            !s.getIdSolicitud().equals(id) && 
             s.getIdMedicoEspecialista() != null &&
             dto.getIdMedicoEspecialista() != null &&
             s.getIdMedicoEspecialista().longValue() == dto.getIdMedicoEspecialista().longValue() &&
@@ -115,7 +137,7 @@ public class SolicitudController {
             s.getFechaCita().equals(dto.getFechaCita()) &&
             s.getHoraCita() != null &&
             s.getHoraCita().equalsIgnoreCase(dto.getHoraCita().trim()) &&
-            !"CANCELADA".equalsIgnoreCase(s.getEstado())
+            "AGENDADA".equalsIgnoreCase(s.getEstado()) // <-- CLAVE: Solo evalúa citas con estado AGENDADA
         );
 
         if (medicoOcupado) {
@@ -123,15 +145,57 @@ public class SolicitudController {
                 .body("El médico especialista seleccionado ya tiene una cita agendada para esa fecha y hora.");
         }
 
-        Solicitud solicitud = optSolicitud.get();
+        // B. VALIDACIÓN: Enfermero Ocupado (Solo si tiene cita AGENDADA activa)
+        Integer idEnfermero = solicitud.getIdEnfermero();
+        if (idEnfermero != null && dto.getFechaCita() != null && dto.getHorarioEnfermero() != null) {
+            boolean enfermeroOcupado = solicitudRepository.existsByIdEnfermeroAndFechaCitaAndHorarioEnfermeroAndEstado(
+                idEnfermero,
+                dto.getFechaCita(),
+                dto.getHorarioEnfermero(),
+                "AGENDADA"
+            );
+
+            if (enfermeroOcupado) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("El enfermero ya se encuentra asignado a otra cita activa en esa misma fecha y turno (" + dto.getHorarioEnfermero() + ").");
+            }
+        }
+
+        // C. Actualizar y Guardar Datos
         if (dto.getIdMedicoEspecialista() != null) {
             solicitud.setIdMedicoEspecialista(dto.getIdMedicoEspecialista().intValue());
         }
         solicitud.setFechaCita(dto.getFechaCita());
         solicitud.setHoraCita(dto.getHoraCita());
+        if (dto.getHorarioEnfermero() != null) {
+            solicitud.setHorarioEnfermero(dto.getHorarioEnfermero());
+        }
         solicitud.setEstado("AGENDADA");
 
         Solicitud actualizada = solicitudRepository.save(solicitud);
+
+        // --- D. ACTUALIZAR EL REGISTRO EXISTENTE EN LA AGENDA DE ENFERMERÍA ---
+        if (actualizada.getIdEnfermero() != null) {
+            agendaEnfermeriaRepository.findByIdSolicitud(actualizada.getIdSolicitud()).ifPresentOrElse(
+                agendaExistente -> {
+                    // Si ya existe (creado por el médico general), actualizamos el turno y pasamos a Programado
+                    agendaExistente.setTurnoAsignado(actualizada.getHorarioEnfermero() != null ? actualizada.getHorarioEnfermero() : "Turno General");
+                    agendaExistente.setEstado("Programado");
+                    agendaEnfermeriaRepository.save(agendaExistente);
+                },
+                () -> {
+                    // Por seguridad, si no existiera previamente, lo creamos de emergencia
+                    AgendaEnfermeria agenda = new AgendaEnfermeria();
+                    agenda.setIdEnfermero(Long.valueOf(actualizada.getIdEnfermero()));
+                    agenda.setIdSolicitud(actualizada.getIdSolicitud());
+                    agenda.setNombrePaciente(actualizada.getNombrePaciente() != null ? actualizada.getNombrePaciente() : "Paciente");
+                    agenda.setTurnoAsignado(actualizada.getHorarioEnfermero() != null ? actualizada.getHorarioEnfermero() : "Turno General");
+                    agenda.setEstado("Programado");
+                    agendaEnfermeriaRepository.save(agenda);
+                }
+            );
+        }
+        // ---------------------------------------------------------------------
 
         try {
             RestTemplate restTemplate = new RestTemplate();
@@ -161,7 +225,7 @@ public class SolicitudController {
         return ResponseEntity.ok(actualizada);
     }
 
-    // 4. Cancelar cita / solicitud (recibe el motivoCancelacion)
+    // 4. Cancelar cita / solicitud
     @PutMapping("/{id}/cancelar")
     public ResponseEntity<?> cancelarSolicitud(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         Optional<Solicitud> optSolicitud = solicitudRepository.findById(id);

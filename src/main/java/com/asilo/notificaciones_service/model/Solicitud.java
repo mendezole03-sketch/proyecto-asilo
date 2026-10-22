@@ -25,13 +25,17 @@ public class Solicitud {
     private String correoFamiliar;
 
     @Column(name = "medicoEspecialista")
-    private String medicoEspecialista; // Especialidad requerida (ej. Cardiología)
+    private String medicoEspecialista; 
 
     @Column(name = "idMedicoEspecialista")
-    private Integer idMedicoEspecialista; // ID del médico usuario asignado por la Fundación
+    private Integer idMedicoEspecialista; 
 
-    @Column(name = "idEnfermero")
+    // Mapeo corregido a la columna exacta de SQL Server (sin guion bajo) y permitiendo nulos
+    @Column(name = "idEnfermero", nullable = true) 
     private Integer idEnfermero;
+
+    @Column(name = "horario_enfermero") 
+    private String horarioEnfermero;
 
     @Column(name = "motivo", length = 1000)
     private String motivo;
@@ -46,12 +50,11 @@ public class Solicitud {
     private String horaCita;
 
     @Column(name = "estado", length = 20)
-    private String estado = "PENDIENTE"; // PENDIENTE, AGENDADA, COMPLETADA, CANCELADA
+    private String estado = "PENDIENTE"; 
 
     @Column(name = "motivo_cancelacion", length = 500)
     private String motivoCancelacion;
 
-    // --- NUEVO CAMPO: No se crea en la BD, solo se envía en la respuesta JSON ---
     @Transient
     private Boolean pacienteActivo;
 
@@ -62,8 +65,8 @@ public class Solicitud {
 
     public Solicitud(Long idSolicitud, Integer idPaciente, String nombrePaciente, String nombreFamiliar, 
                      String correoFamiliar, String medicoEspecialista, Integer idMedicoEspecialista, 
-                     Integer idEnfermero, String motivo, LocalDate fechaSolicitud, LocalDate fechaCita, 
-                     String horaCita, String estado, String motivoCancelacion) {
+                     Integer idEnfermero, String horarioEnfermero, String motivo, LocalDate fechaSolicitud, 
+                     LocalDate fechaCita, String horaCita, String estado, String motivoCancelacion) {
         this.idSolicitud = idSolicitud;
         this.idPaciente = idPaciente;
         this.nombrePaciente = nombrePaciente;
@@ -72,6 +75,7 @@ public class Solicitud {
         this.medicoEspecialista = medicoEspecialista;
         this.idMedicoEspecialista = idMedicoEspecialista;
         this.idEnfermero = idEnfermero;
+        this.horarioEnfermero = horarioEnfermero;
         this.motivo = motivo;
         this.fechaSolicitud = fechaSolicitud;
         this.fechaCita = fechaCita;
@@ -146,6 +150,14 @@ public class Solicitud {
         this.idEnfermero = idEnfermero;
     }
 
+    public String getHorarioEnfermero() {
+        return horarioEnfermero;
+    }
+
+    public void setHorarioEnfermero(String horarioEnfermero) {
+        this.horarioEnfermero = horarioEnfermero;
+    }
+
     public String getMotivo() {
         return motivo;
     }
@@ -194,7 +206,6 @@ public class Solicitud {
         this.motivoCancelacion = motivoCancelacion;
     }
 
-    // GETTER Y SETTER PARA EL BORRADO LÓGICO EN FRONTEND
     public Boolean getPacienteActivo() {
         return pacienteActivo;
     }

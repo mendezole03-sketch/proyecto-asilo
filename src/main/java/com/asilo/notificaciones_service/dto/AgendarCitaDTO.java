@@ -7,14 +7,16 @@ public class AgendarCitaDTO {
     private Integer idMedicoEspecialista;
     private LocalDate fechaCita;
     private String horaCita;
+    private String horarioEnfermero; // Campo agregado para el turno del enfermero
 
     public AgendarCitaDTO() {
     }
 
-    public AgendarCitaDTO(Integer idMedicoEspecialista, LocalDate fechaCita, String horaCita) {
+    public AgendarCitaDTO(Integer idMedicoEspecialista, LocalDate fechaCita, String horaCita, String horarioEnfermero) {
         this.idMedicoEspecialista = idMedicoEspecialista;
         this.fechaCita = fechaCita;
         this.horaCita = horaCita;
+        this.horarioEnfermero = horarioEnfermero;
     }
 
     public Integer getIdMedicoEspecialista() {
@@ -39,5 +41,13 @@ public class AgendarCitaDTO {
 
     public void setHoraCita(String horaCita) {
         this.horaCita = horaCita;
+    }
+
+    public String getHorarioEnfermero() {
+        return horarioEnfermero;
+    }
+
+    public void setHorarioEnfermero(String horarioEnfermero) {
+        this.horarioEnfermero = horarioEnfermero;
     }
 }

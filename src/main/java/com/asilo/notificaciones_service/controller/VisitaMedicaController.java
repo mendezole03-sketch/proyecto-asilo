@@ -30,12 +30,14 @@ public class VisitaMedicaController {
     @Autowired
     private SolicitudRepository solicitudRepository;
 
-    // Repositorios añadidos para conectar con la Caja
     @Autowired
     private CuentaFamiliarRepository cuentaFamiliarRepository;
 
     @Autowired
     private PacienteRepository pacienteRepository;
+
+    @Autowired
+    private AgendaEnfermeriaRepository agendaEnfermeriaRepository; // <-- 1. Inyectar repositorio de enfermería
 
     @PostMapping
     @Transactional
@@ -80,7 +82,7 @@ public class VisitaMedicaController {
                 
                 double costoEx = exDto.getCostoExamen() != null ? exDto.getCostoExamen() : 0.0;
                 ex.setCostoExamen(costoEx);
-                subtotalExamenes += costoEx; // Sumar al subtotal de laboratorio
+                subtotalExamenes += costoEx;
                 
                 ex.setEstado("ORDENADO");
                 examenRepository.save(ex);
@@ -103,7 +105,7 @@ public class VisitaMedicaController {
                 } else {
                     rec.setCostoMedicamento(BigDecimal.ZERO);
                 }
-                subtotalMedicamentos += costoMed; // Sumar al subtotal de farmacia
+                subtotalMedicamentos += costoMed;
 
                 rec.setEstado("PENDIENTE_ENTREGA");
                 recetaRepository.save(rec);
@@ -114,7 +116,6 @@ public class VisitaMedicaController {
         double montoBruto = costoConsulta + subtotalExamenes + subtotalMedicamentos;
         double porcentajeDescuento = 0.0;
 
-        // Reglas de rangos solicitadas:
         if (montoBruto <= 150) {
             porcentajeDescuento = 0.10; // 10%
         } else if (montoBruto <= 300) {
@@ -129,15 +130,10 @@ public class VisitaMedicaController {
         double montoFinal = montoBruto - descuentoFundacion;
 
         CuentaFamiliar cuenta = new CuentaFamiliar();
-        
-        // Asignamos el ID de la visita recién guardada
         cuenta.setIdVisita(visitaGuardada.getIdVisita());
 
-        // Buscar el paciente, relacionarlo y extraer su familiar automáticamente
         pacienteRepository.findById(dto.getIdPaciente()).ifPresent(paciente -> {
             cuenta.setPaciente(paciente);
-            
-            // Asignar el familiar vinculado al paciente para evitar el NULL
             if (paciente.getFamiliar() != null) {
                 cuenta.setFamiliar(paciente.getFamiliar());
             }
@@ -154,7 +150,7 @@ public class VisitaMedicaController {
 
         cuentaFamiliarRepository.save(cuenta);
 
-        // 5. Actualizar estado de la Solicitud condicionalmente
+        // 5. Actualizar estado de la Solicitud y de la Agenda de Enfermería condicionalmente
         if (dto.getIdSolicitud() != null) {
             solicitudRepository.findById(dto.getIdSolicitud()).ifPresent(sol -> {
                 if (tieneExamenes) {
@@ -163,6 +159,12 @@ public class VisitaMedicaController {
                     sol.setEstado("COMPLETADA");
                 }
                 solicitudRepository.save(sol);
+            });
+
+            // Actualizar también el estado en la agenda del enfermero a Completado
+            agendaEnfermeriaRepository.findByIdSolicitud(dto.getIdSolicitud()).ifPresent(agenda -> {
+                agenda.setEstado("Completado");
+                agendaEnfermeriaRepository.save(agenda);
             });
         }
 
