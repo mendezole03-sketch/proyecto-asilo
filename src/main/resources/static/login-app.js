@@ -10,7 +10,10 @@ document.getElementById('form-login').addEventListener('submit', async function(
     
     
     try {
-        const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:8081' : '';
+        // --- AQUÍ ESTÁ EL CAMBIO ---
+        const baseUrl = window.location.hostname === 'localhost' 
+            ? 'http://localhost:8081' 
+            : 'https://api-cabeza-algodon-cqctgte6hbbxf4gc.centralus-01.azurewebsites.net';
         const respuesta = await fetch(`${baseUrl}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
