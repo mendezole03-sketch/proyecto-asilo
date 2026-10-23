@@ -22,7 +22,9 @@ function cerrarSesion() {
 }
 
 // Endpoints API Backend
-const API_URL_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8081' : '';
+const API_URL_BASE = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8081' 
+    : 'https://api-cabeza-algodon-cqctgte6hbbxf4gc.centralus-01.azurewebsites.net';
 
 const API_URL_EXAMENES = `${API_URL_BASE}/api/examenes`;
 

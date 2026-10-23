@@ -1,4 +1,8 @@
-const API_URL_REPORTES = window.location.hostname === 'localhost' ? 'http://localhost:8081/api/reportes' : '/api/reportes';
+const API_URL_BASE = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8081' 
+    : 'https://api-cabeza-algodon-cqctgte6hbbxf4gc.centralus-01.azurewebsites.net';
+
+const API_URL_REPORTES = `${API_URL_BASE}/api/reportes`;
 
 document.addEventListener("DOMContentLoaded", () => {
     cargarReporteCostosCitas();

@@ -14,7 +14,7 @@ function cerrarSesion() {
 }
 
 // Ajustado al puerto habitual de Spring Boot (8080)
-const API_URL_FARMACIA = window.location.hostname === 'localhost' ? 'http://localhost:8081/api/farmacia' : '/api/farmacia';
+const API_URL_FARMACIA = window.location.hostname === 'localhost' ? 'http://localhost:8081/api/farmacia' : 'https://api-cabeza-algodon-cqctgte6hbbxf4gc.centralus-01.azurewebsites.net/api/farmacia';
 
 let listaRecetasGlobal = [];
 
