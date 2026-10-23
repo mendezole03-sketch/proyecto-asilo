@@ -94,7 +94,8 @@ public class SolicitudController {
 
         try {
             RestTemplate restTemplate = new RestTemplate();
-            String url = "http://localhost:8082/api/v1/notificaciones/solicitud";
+            // AHORA:
+            String url = "https://notificaciones-cabeza-algodon-d8dza9agf0eeh5au.centralus-01.azurewebsites.net/api/v1/notificaciones/solicitud";
 
             NotificacionDTO datosCorreo = new NotificacionDTO(
                 guardada.getIdSolicitud(),
@@ -199,7 +200,10 @@ public class SolicitudController {
 
         try {
             RestTemplate restTemplate = new RestTemplate();
-            String url = "http://localhost:8082/api/v1/notificaciones/agendar";
+           
+            // AHORA:
+            String url = "https://notificaciones-cabeza-algodon-d8dza9agf0eeh5au.centralus-01.azurewebsites.net/api/v1/notificaciones/agendar";
+            
 
             String detalleAgendamiento = String.format("%s (Programada para el %s a las %s)", 
                     actualizada.getMotivo(), 
