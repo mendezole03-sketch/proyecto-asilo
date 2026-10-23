@@ -1,0 +1,32 @@
+name: Build and Deploy Java app to Azure Web App
+
+on:
+  push:
+    branches:
+      - master # Cambia a 'main' si tu rama principal se llama así
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Java version
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Build with Maven
+      run: mvn clean package -DskipTests
+
+    - name: Deploy to Azure Web App
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: 'api-cabeza-algodon'
+        slot-name: 'Production'
+        publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+        package: 'target/*.jar'
